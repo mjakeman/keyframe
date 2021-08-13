@@ -1,0 +1,7 @@
+data/com.mattjakeman.Keyframe.desktop.in
+data/com.mattjakeman.Keyframe.appdata.xml.in
+data/com.mattjakeman.Keyframe.gschema.xml
+src/keyframe-window.ui
+src/main.c
+src/keyframe-window.c
+
