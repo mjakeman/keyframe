@@ -7,9 +7,9 @@ keyframe_sources = [
 ]
 
 keyframe_deps = [
-	dependency('gtk4'),
-	dependency('libadwaita', fallback : ['libadwaita', 'libadwaita_dep']),
-    # dependency('libpanel', fallback : ['libpanel', 'libpanel_dep'])
+	dependency('gtk4', version : '>=4.3'),
+	dependency('libadwaita-1', fallback : ['libadwaita', 'libadwaita_dep']),
+    dependency('libpanel', fallback : ['libpanel', 'libpanel_dep'])
 ]
 
 gnome = import('gnome')

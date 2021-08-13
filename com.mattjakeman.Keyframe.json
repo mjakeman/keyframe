@@ -1,7 +1,7 @@
 {
     "app-id" : "com.mattjakeman.Keyframe",
     "runtime" : "org.gnome.Platform",
-    "runtime-version" : "40",
+    "runtime-version" : "master",
     "sdk" : "org.gnome.Sdk",
     "command" : "keyframe",
     "finish-args" : [

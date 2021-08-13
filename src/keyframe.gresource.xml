@@ -3,5 +3,6 @@
   <gresource prefix="/com/mattjakeman/Keyframe">
     <file>keyframe-window.ui</file>
     <file>gtk/help-overlay.ui</file>
+    <file preprocess="xml-stripblanks">icons/cameras-symbolic.svg</file>
   </gresource>
 </gresources>

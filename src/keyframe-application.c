@@ -49,6 +49,16 @@ keyframe_application_finalize (GObject *object)
 static void
 keyframe_application_activate (GApplication *app)
 {
+    // Initialise
+    adw_init ();
+    panel_init ();
+
+    // Ensure Types
+    g_type_ensure (KEYFRAME_TYPE_WINDOW);
+    g_type_ensure (KEYFRAME_TYPE_TIMELINE);
+    g_type_ensure (KEYFRAME_TYPE_LAYER);
+
+    // Activate
     GtkWindow *window;
 
     /* It's good practice to check your parameters at the beginning of the
@@ -62,8 +72,6 @@ keyframe_application_activate (GApplication *app)
     if (window == NULL)
     window = g_object_new (KEYFRAME_TYPE_WINDOW,
                            "application", app,
-                           "default-width", 600,
-                           "default-height", 300,
                            NULL);
 
     /* Ask the window manager/compositor to present the window. */
@@ -122,9 +130,4 @@ keyframe_application_init (KeyframeApplication *self)
 
     const char *accels[] = {"<primary>q", NULL};
     gtk_application_set_accels_for_action (GTK_APPLICATION (self), "app.quit", accels);
-
-    // Ensure Types
-    g_type_ensure (KEYFRAME_TYPE_WINDOW);
-    g_type_ensure (KEYFRAME_TYPE_TIMELINE);
-    g_type_ensure (KEYFRAME_TYPE_LAYER);
 }

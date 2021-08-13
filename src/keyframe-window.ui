@@ -1,32 +1,78 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <template class="KeyframeWindow" parent="GtkApplicationWindow">
-    <property name="default-width">800</property>
-    <property name="default-height">600</property>
-    <child type="titlebar">
-      <object class="GtkHeaderBar" id="header_bar">
-        <child type="end">
-          <object class="GtkMenuButton">
-            <property name="icon-name">open-menu-symbolic</property>
-            <property name="menu-model">primary_menu</property>
-          </object>
-        </child>
-      </object>
-    </child>
+  <template class="KeyframeWindow" parent="AdwApplicationWindow">
+    <property name="title">Keyframe</property>
+    <property name="default-width">1280</property>
+    <property name="default-height">800</property>
     <child>
-      <object class="GtkPaned" id="paned">
-        <property name="orientation">1</property>
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
         <child>
-          <object class="GtkLabel" id="label">
-            <property name="label">Hello, World!</property>
-            <attributes>
-              <attribute name="weight" value="bold"/>
-              <attribute name="scale" value="2"/>
-            </attributes>
+          <object class="GtkHeaderBar" id="header_bar">
+            <child>
+              <object class="PanelDockSwitcher" id="dockswitcher">
+                <property name="dock">dock</property>
+              </object>
+            </child>
+            <child type="end">
+              <object class="GtkMenuButton">
+                <property name="icon-name">open-menu-symbolic</property>
+                <property name="menu-model">primary_menu</property>
+              </object>
+            </child>
           </object>
         </child>
         <child>
-          <object class="KeyframeTimeline" id="timeline">
+          <object class="PanelDock" id="dock">
+            <property name="reveal-start">false</property>
+            <property name="reveal-bottom">true</property>
+            <property name="reveal-end">false</property>
+            <property name="vexpand">true</property>
+            <child>
+              <object class="PanelGrid" id="grid">
+                <signal name="create-frame" handler="create_frame_cb"/>
+              </object>
+            </child>
+            <child type="start">
+              <object class="PanelPaned">
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="PanelFrame">
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child type="end">
+              <object class="PanelPaned">
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="PanelFrame">
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child type="bottom">
+              <object class="PanelPaned">
+                <property name="orientation">horizontal</property>
+                <child>
+                  <object class="PanelFrame">
+                    <property name="orientation">horizontal</property>
+                    <child>
+                      <object class="PanelWidget">
+                        <property name="background-rgba">#fff</property>
+                        <property name="icon-name">video-joined-displays-symbolic</property>
+                        <property name="title">Timeline</property>
+                        <property name="can-maximize">true</property>
+                        <child>
+                          <object class="KeyframeTimeline" id="timeline">
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
           </object>
         </child>
       </object>

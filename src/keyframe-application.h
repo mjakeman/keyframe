@@ -20,6 +20,7 @@
 
 #include <gtk/gtk.h>
 #include <adwaita.h>
+#include <libpanel.h>
 
 G_BEGIN_DECLS
 

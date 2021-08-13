@@ -2,7 +2,8 @@
 
 typedef struct
 {
-
+    // For dispose
+    GtkWidget *sw;
 } KeyframeTimelinePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (KeyframeTimeline, keyframe_timeline, GTK_TYPE_WIDGET)
@@ -32,6 +33,8 @@ keyframe_timeline_finalize (GObject *object)
 {
     KeyframeTimeline *self = (KeyframeTimeline *)object;
     KeyframeTimelinePrivate *priv = keyframe_timeline_get_instance_private (self);
+
+    gtk_widget_unparent (priv->sw);
 
     G_OBJECT_CLASS (keyframe_timeline_parent_class)->finalize (object);
 }
@@ -101,8 +104,9 @@ static void
 setup_listitem_cb (GtkListItemFactory *factory,
                    GtkListItem        *list_item)
 {
-  GtkWidget *label = gtk_label_new ("");
-  gtk_list_item_set_child (list_item, label);
+    GtkWidget *label = gtk_label_new ("");
+    gtk_label_set_xalign (GTK_LABEL (label), 0);
+    gtk_list_item_set_child (list_item, label);
 }
 
 static void
@@ -126,11 +130,18 @@ bind_listitem_cb (GtkListItemFactory *factory,
 static void
 keyframe_timeline_init (KeyframeTimeline *self)
 {
-    GtkColumnView *col_view = GTK_COLUMN_VIEW (gtk_column_view_new (NULL));
-    gtk_widget_set_layout_manager (GTK_WIDGET (self), gtk_bin_layout_new ());
-    gtk_widget_set_parent (GTK_WIDGET (col_view), GTK_WIDGET (self));
+    KeyframeTimelinePrivate *priv = keyframe_timeline_get_instance_private (self);
 
-    // GtkListItemFactory *factory = gtk_builder_list_item_factory_new_from_resource (NULL, "/com/mattjakeman/Keyframe/keyframe-timeline-item.ui");
+    priv->sw = gtk_scrolled_window_new ();
+    GtkColumnView *col_view = GTK_COLUMN_VIEW (gtk_column_view_new (NULL));
+
+    gtk_widget_set_layout_manager (GTK_WIDGET (self), gtk_bin_layout_new ());
+    gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (priv->sw), GTK_WIDGET (col_view));
+    gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (priv->sw), 200);
+    gtk_widget_set_parent (priv->sw, GTK_WIDGET (self));
+
+    gtk_column_view_set_reorderable (col_view, false);
+    gtk_column_view_set_show_column_separators (col_view, true);
 
     GtkListItemFactory *factory = gtk_signal_list_item_factory_new ();
     g_signal_connect (factory, "setup", setup_listitem_cb, NULL);
@@ -141,6 +152,10 @@ keyframe_timeline_init (KeyframeTimeline *self)
 
     GtkColumnViewColumn* col2 = gtk_column_view_column_new("Text", factory);
     gtk_column_view_append_column (col_view, col2);
+
+    GtkColumnViewColumn* col3 = gtk_column_view_column_new("Graph", factory);
+    gtk_column_view_append_column (col_view, col3);
+    gtk_column_view_column_set_expand (col3, true);
 
     GListModel *model = create_layers_model (NULL, NULL);
     GtkTreeListModel *treemodel = gtk_tree_list_model_new (model,

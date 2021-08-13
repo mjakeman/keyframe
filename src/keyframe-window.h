@@ -19,11 +19,12 @@
 #pragma once
 
 #include <gtk/gtk.h>
+#include <adwaita.h>
 
 G_BEGIN_DECLS
 
 #define KEYFRAME_TYPE_WINDOW (keyframe_window_get_type())
 
-G_DECLARE_FINAL_TYPE (KeyframeWindow, keyframe_window, KEYFRAME, WINDOW, GtkApplicationWindow)
+G_DECLARE_FINAL_TYPE (KeyframeWindow, keyframe_window, KEYFRAME, WINDOW, AdwApplicationWindow)
 
 G_END_DECLS
