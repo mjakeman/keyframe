@@ -2,6 +2,8 @@
 
 #include <glib-object.h>
 
+#include "keyframe-renderer.h"
+
 G_BEGIN_DECLS
 
 #define KEYFRAME_TYPE_LAYER (keyframe_layer_get_type())
@@ -11,8 +13,9 @@ G_DECLARE_DERIVABLE_TYPE (KeyframeLayer, keyframe_layer, KEYFRAME, LAYER, GObjec
 struct _KeyframeLayerClass
 {
   GObjectClass parent_class;
+  void (*fill_command_buffer)(KeyframeLayer *self, KeyframeRenderer *renderer);
 };
 
-KeyframeLayer *keyframe_layer_new (const char *name);
+void keyframe_layer_fill_command_buffer (KeyframeLayer *self, KeyframeRenderer *renderer);
 
 G_END_DECLS

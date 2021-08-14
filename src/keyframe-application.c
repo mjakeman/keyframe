@@ -110,9 +110,12 @@ keyframe_application_show_about (GSimpleAction *action,
     window = gtk_application_get_active_window (GTK_APPLICATION (self));
 
     gtk_show_about_dialog (window,
-                         "program-name", "keyframe",
+                         "program-name", "Keyframe",
                          "authors", authors,
                          "version", "0.1.0",
+                         "license-type", GTK_LICENSE_GPL_3_0,
+                         "website", "https://github.com/mjakeman/keyframe",
+                         "comments", "A motion graphics editor for GNOME.",
                          NULL);
 }
 

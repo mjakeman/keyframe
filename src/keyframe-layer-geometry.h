@@ -1,0 +1,20 @@
+#pragma once
+
+#include <glib-object.h>
+
+#include "keyframe-layer.h"
+
+G_BEGIN_DECLS
+
+#define KEYFRAME_TYPE_LAYER_GEOMETRY (keyframe_layer_geometry_get_type())
+
+G_DECLARE_DERIVABLE_TYPE (KeyframeLayerGeometry, keyframe_layer_geometry, KEYFRAME, LAYER_GEOMETRY, KeyframeLayer)
+
+struct _KeyframeLayerGeometryClass
+{
+  KeyframeLayerClass parent_class;
+};
+
+KeyframeLayerGeometry *keyframe_layer_geometry_new (const char *name);
+
+G_END_DECLS

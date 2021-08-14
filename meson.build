@@ -20,7 +20,6 @@ add_project_arguments([
   '-I' + meson.build_root(),
 ], language: 'c')
 
-
 subdir('data')
 subdir('src')
 subdir('po')

@@ -3,7 +3,10 @@ keyframe_sources = [
 	'keyframe-window.c',
 	'keyframe-application.c',
 	'keyframe-timeline.c',
-	'keyframe-layer.c'
+	'keyframe-layer.c',
+	'keyframe-layer-geometry.c',
+	'keyframe-canvas.c',
+	'keyframe-renderer.c'
 ]
 
 keyframe_deps = [

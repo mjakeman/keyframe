@@ -18,6 +18,7 @@
 
 #include "keyframe-config.h"
 #include "keyframe-window.h"
+#include "keyframe-canvas.h"
 
 #include <libpanel.h>
 
@@ -32,6 +33,88 @@ struct _KeyframeWindow
 };
 
 G_DEFINE_TYPE (KeyframeWindow, keyframe_window, ADW_TYPE_APPLICATION_WINDOW)
+
+static GtkWidget *
+get_default_focus_cb (GtkWidget *widget,
+                      GtkWidget *canvas)
+{
+  return canvas;
+}
+
+static gboolean
+on_save_cb (PanelSaveDelegate *delegate,
+            GTask             *task,
+            PanelWidget       *widget)
+{
+  g_assert (PANEL_IS_SAVE_DELEGATE (delegate));
+  g_assert (G_IS_TASK (task));
+  g_assert (PANEL_IS_WIDGET (widget));
+
+  // actually do the save here, ideally asynchronously
+
+  g_print ("Actually save the file\n");
+
+  panel_widget_set_modified (widget, FALSE);
+  panel_save_delegate_set_progress (delegate, 1.0);
+  g_task_return_boolean (task, TRUE);
+
+  return TRUE;
+}
+
+static void
+keyframe_window_add_document (KeyframeWindow *self)
+{
+    static guint count;
+    PanelWidget *widget;
+    PanelSaveDelegate *save_delegate;
+    GtkWidget *canvas;
+    char *title;
+
+    g_return_if_fail (KEYFRAME_IS_WINDOW (self));
+
+    title = g_strdup_printf ("Composition %u", ++count);
+    canvas = keyframe_canvas_new ();
+
+    save_delegate = panel_save_delegate_new ();
+    panel_save_delegate_set_title (save_delegate, title);
+    panel_save_delegate_set_subtitle (save_delegate, "~/Documents");
+
+    widget = g_object_new (PANEL_TYPE_WIDGET,
+                         "title", title,
+                         "kind", PANEL_WIDGET_KIND_DOCUMENT,
+                         "icon-name", "text-x-generic-symbolic",
+                         // "menu-model", self->page_menu,
+                         "can-maximize", TRUE,
+                         "save-delegate", save_delegate,
+                         "modified", TRUE,
+                         "child", g_object_new (GTK_TYPE_SCROLLED_WINDOW,
+                                                "child", canvas,
+                                                NULL),
+                         NULL);
+
+    g_signal_connect (widget,
+                    "get-default-focus",
+                    G_CALLBACK (get_default_focus_cb),
+                    canvas);
+    g_signal_connect (save_delegate,
+                    "save",
+                    G_CALLBACK (on_save_cb),
+                    widget);
+
+    panel_grid_add (self->grid, widget);
+    panel_widget_raise (widget);
+    panel_widget_focus_default (widget);
+
+    g_object_unref (save_delegate);
+}
+
+static void
+add_document_action (GtkWidget  *widget,
+                     const char *action_name,
+                     GVariant   *param)
+{
+    keyframe_window_add_document (KEYFRAME_WINDOW (widget));
+}
 
 static PanelFrame *
 create_frame_cb (PanelGrid     *grid,
@@ -110,6 +193,10 @@ keyframe_window_class_init (KeyframeWindowClass *klass)
     gtk_widget_class_bind_template_child (widget_class, KeyframeWindow, grid);
     gtk_widget_class_bind_template_child (widget_class, KeyframeWindow, dock);
     gtk_widget_class_bind_template_callback (widget_class, create_frame_cb);
+
+    gtk_widget_class_install_action (widget_class, "document.new", NULL, add_document_action);
+
+    gtk_widget_class_add_binding_action (widget_class, GDK_KEY_n, GDK_CONTROL_MASK, "document.new", NULL);
 }
 
 static void

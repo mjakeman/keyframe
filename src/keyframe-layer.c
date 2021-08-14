@@ -5,7 +5,7 @@ typedef struct
     char *name;
 } KeyframeLayerPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE (KeyframeLayer, keyframe_layer, G_TYPE_OBJECT)
+G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (KeyframeLayer, keyframe_layer, G_TYPE_OBJECT)
 
 enum {
     PROP_0,
@@ -14,21 +14,6 @@ enum {
 };
 
 static GParamSpec *properties [N_PROPS];
-
-/**
- * keyframe_layer_new:
- *
- * Create a new #KeyframeLayer.
- *
- * Returns: (transfer full): a newly created #KeyframeLayer
- */
-KeyframeLayer *
-keyframe_layer_new (const char *name)
-{
-    return g_object_new (KEYFRAME_TYPE_LAYER,
-                         "name", name,
-                         NULL);
-}
 
 static void
 keyframe_layer_finalize (GObject *object)
@@ -80,8 +65,22 @@ keyframe_layer_set_property (GObject      *object,
 }
 
 static void
+keyframe_layer_fill_command_buffer_default (KeyframeLayer *self, KeyframeRenderer *renderer)
+{
+    g_warning ("%s does not implement 'fill_command_buffer()' - Nothing will be drawn!\n",
+               g_type_name_from_instance (self));
+}
+
+void keyframe_layer_fill_command_buffer (KeyframeLayer *self, KeyframeRenderer *renderer)
+{
+    KEYFRAME_LAYER_GET_CLASS (self)->fill_command_buffer (self, renderer);
+}
+
+static void
 keyframe_layer_class_init (KeyframeLayerClass *klass)
 {
+    klass->fill_command_buffer = keyframe_layer_fill_command_buffer_default;
+
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->finalize = keyframe_layer_finalize;

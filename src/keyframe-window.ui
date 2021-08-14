@@ -90,7 +90,7 @@
         <attribute name="action">win.show-help-overlay</attribute>
       </item>
       <item>
-        <attribute name="label" translatable="yes">_About keyframe</attribute>
+        <attribute name="label" translatable="yes">_About Keyframe</attribute>
         <attribute name="action">app.about</attribute>
       </item>
     </section>

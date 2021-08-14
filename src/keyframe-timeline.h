@@ -3,6 +3,7 @@
 #include <gtk/gtk.h>
 
 #include "keyframe-layer.h"
+#include "keyframe-layer-geometry.h"
 
 G_BEGIN_DECLS
 

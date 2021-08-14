@@ -85,10 +85,10 @@ create_layers_model (gpointer layer_ptr, gpointer unused)
     if (layer_ptr == NULL)
     {
         GListModel *model = g_list_store_new (G_TYPE_OBJECT);
-        KeyframeLayer *layer1 = keyframe_layer_new ("layer1");
-        KeyframeLayer *layer2 = keyframe_layer_new ("layer2");
-        KeyframeLayer *layer3 = keyframe_layer_new ("layer3");
-        KeyframeLayer *layer4 = keyframe_layer_new ("layer4");
+        KeyframeLayer *layer1 = keyframe_layer_geometry_new ("layer1");
+        KeyframeLayer *layer2 = keyframe_layer_geometry_new ("layer2");
+        KeyframeLayer *layer3 = keyframe_layer_geometry_new ("layer3");
+        KeyframeLayer *layer4 = keyframe_layer_geometry_new ("layer4");
         g_list_store_append (model, layer1);
         g_list_store_append (model, layer2);
         g_list_store_append (model, layer3);
@@ -148,12 +148,15 @@ keyframe_timeline_init (KeyframeTimeline *self)
     g_signal_connect (factory, "bind", bind_listitem_cb, NULL);
 
     GtkColumnViewColumn* col1 = gtk_column_view_column_new("Layer", factory);
+    gtk_column_view_column_set_resizable (col1, true);
     gtk_column_view_append_column (col_view, col1);
 
     GtkColumnViewColumn* col2 = gtk_column_view_column_new("Text", factory);
+    gtk_column_view_column_set_resizable (col2, true);
     gtk_column_view_append_column (col_view, col2);
 
     GtkColumnViewColumn* col3 = gtk_column_view_column_new("Graph", factory);
+    gtk_column_view_column_set_resizable (col3, true);
     gtk_column_view_append_column (col_view, col3);
     gtk_column_view_column_set_expand (col3, true);
 
