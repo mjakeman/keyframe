@@ -20,6 +20,12 @@ typedef struct
     double old_x, old_y;
 } KeyframeCanvasPrivate;
 
+#include <math.h>
+
+#define MAX_ZOOM 3
+#define MIN_ZOOM 0.25
+#define CLAMP(x, lower, upper) (MIN(upper, MAX(x, lower)))
+
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (KeyframeCanvas, keyframe_canvas, GTK_TYPE_WIDGET)
 
 enum {
@@ -181,7 +187,7 @@ cb_gesture_update (GtkGesture       *gesture,
     double delta_x = x - priv->start_x;
     double delta_y = y - priv->start_y;
 
-    priv->zoom = priv->old_zoom * scale;
+    priv->zoom = CLAMP (priv->old_zoom * scale, MIN_ZOOM, MAX_ZOOM);
     priv->x = priv->old_x + delta_x;
     priv->y = priv->old_y + delta_y;
 
