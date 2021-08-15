@@ -5,6 +5,7 @@ keyframe_sources = [
 	'keyframe-timeline.c',
 	'keyframe-canvas.c',
 	'keyframe-renderer.c',
+	'keyframe-composition-manager.c',
 	'model/keyframe-layer.c',
 	'model/keyframe-layer-geometry.c',
 	'model/keyframe-layer-text.c',

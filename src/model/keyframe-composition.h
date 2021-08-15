@@ -16,7 +16,7 @@ struct _KeyframeCompositionClass
 };
 
 KeyframeComposition *
-keyframe_composition_new (const char *name,
+keyframe_composition_new (const char *title,
                           int         width,
                           int         height,
                           float       framerate);

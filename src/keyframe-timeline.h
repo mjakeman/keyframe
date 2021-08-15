@@ -2,6 +2,7 @@
 
 #include <gtk/gtk.h>
 
+#include "keyframe-composition-manager.h"
 #include "model/keyframe-layers.h"
 
 G_BEGIN_DECLS
@@ -15,6 +16,6 @@ struct _KeyframeTimelineClass
   GtkWidgetClass parent_class;
 };
 
-KeyframeTimeline *keyframe_timeline_new (void);
+KeyframeTimeline *keyframe_timeline_new (KeyframeCompositionManager *manager);
 
 G_END_DECLS

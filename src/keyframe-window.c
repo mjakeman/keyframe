@@ -19,6 +19,8 @@
 #include "keyframe-config.h"
 #include "keyframe-window.h"
 #include "keyframe-canvas.h"
+#include "keyframe-timeline.h"
+#include "keyframe-composition-manager.h"
 #include "model/keyframe-layers.h"
 
 #include <libpanel.h>
@@ -26,11 +28,13 @@
 struct _KeyframeWindow
 {
     AdwApplicationWindow  parent_instance;
+    KeyframeCompositionManager *manager;
 
     /* Template widgets */
     GtkHeaderBar        *header_bar;
     PanelGrid           *grid;
     PanelDock           *dock;
+    KeyframeTimeline    *timeline;
 };
 
 G_DEFINE_TYPE (KeyframeWindow, keyframe_window, ADW_TYPE_APPLICATION_WINDOW)
@@ -65,22 +69,17 @@ on_save_cb (PanelSaveDelegate *delegate,
 static void
 keyframe_window_add_document (KeyframeWindow *self)
 {
-    static guint count;
     PanelWidget *widget;
     PanelSaveDelegate *save_delegate;
-    GtkWidget *canvas;
 
     g_return_if_fail (KEYFRAME_IS_WINDOW (self));
 
-    char *title = g_strdup_printf ("Composition %u", ++count);
-    KeyframeComposition *composition = keyframe_composition_new (title, 1920, 1080, 30);
+    KeyframeComposition *composition = keyframe_composition_manager_new_composition (self->manager);
+    GtkWidget *canvas = keyframe_canvas_new (composition);
 
-    keyframe_composition_push_layer (composition, keyframe_layer_geometry_new ("layer1"));
-    keyframe_composition_push_layer (composition, keyframe_layer_text_new ("layer2"));
-    // keyframe_composition_push_layer (composition, keyframe_layer_geometry_new ("layer3"));
-    // keyframe_composition_push_layer (composition, keyframe_layer_geometry_new ("layer4"));
-
-    canvas = keyframe_canvas_new (composition);
+    const char *title;
+    g_object_get (composition, "title", &title, NULL);
+    g_print ("Title: %s\n", title);
 
     save_delegate = panel_save_delegate_new ();
     panel_save_delegate_set_title (save_delegate, title);
@@ -199,6 +198,7 @@ keyframe_window_class_init (KeyframeWindowClass *klass)
     gtk_widget_class_bind_template_child (widget_class, KeyframeWindow, header_bar);
     gtk_widget_class_bind_template_child (widget_class, KeyframeWindow, grid);
     gtk_widget_class_bind_template_child (widget_class, KeyframeWindow, dock);
+    gtk_widget_class_bind_template_child (widget_class, KeyframeWindow, timeline);
     gtk_widget_class_bind_template_callback (widget_class, create_frame_cb);
 
     gtk_widget_class_install_action (widget_class, "document.new", NULL, add_document_action);
@@ -210,4 +210,7 @@ static void
 keyframe_window_init (KeyframeWindow *self)
 {
     gtk_widget_init_template (GTK_WIDGET (self));
+
+    self->manager = keyframe_composition_manager_new ();
+    g_object_set (self->timeline, "manager", self->manager, NULL);
 }

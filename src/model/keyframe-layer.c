@@ -10,6 +10,7 @@ G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (KeyframeLayer, keyframe_layer, G_TYPE_OBJEC
 enum {
     PROP_0,
     PROP_NAME,
+    PROP_TYPE,
     N_PROPS
 };
 
@@ -37,6 +38,9 @@ keyframe_layer_get_property (GObject    *object,
     {
         case PROP_NAME:
             g_value_set_string (value, priv->name);
+            break;
+        case PROP_TYPE:
+            g_value_set_string (value, g_type_name_from_instance (self));
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -88,6 +92,9 @@ keyframe_layer_class_init (KeyframeLayerClass *klass)
 
     properties[PROP_NAME] =
         g_param_spec_string ("name", "Name", "Name", NULL, G_PARAM_READWRITE);
+
+    properties[PROP_TYPE] =
+        g_param_spec_string ("type", "Type", "Type", NULL, G_PARAM_READABLE);
 
     g_object_class_install_properties (object_class, N_PROPS, properties);
 }
