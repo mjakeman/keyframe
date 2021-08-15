@@ -1,13 +1,12 @@
 #include "keyframe-canvas.h"
 
-#include "keyframe-layer.h"
-#include "keyframe-layer-geometry.h"
-#include "keyframe-layer-text.h"
-
+#include "keyframe-layers.h"
 #include "keyframe-renderer.h"
 
 typedef struct
 {
+    KeyframeComposition *composition;
+
     float x;
     float y;
     float zoom;
@@ -31,6 +30,7 @@ G_DEFINE_FINAL_TYPE_WITH_PRIVATE (KeyframeCanvas, keyframe_canvas, GTK_TYPE_WIDG
 
 enum {
     PROP_0,
+    PROP_COMPOSITION,
     N_PROPS
 };
 
@@ -43,10 +43,12 @@ static GParamSpec *properties [N_PROPS];
  *
  * Returns: (transfer full): a newly created #KeyframeCanvas
  */
-KeyframeCanvas *
-keyframe_canvas_new (void)
+GtkWidget *
+keyframe_canvas_new (KeyframeComposition *composition)
 {
-    return g_object_new (KEYFRAME_TYPE_CANVAS, NULL);
+    return GTK_WIDGET (g_object_new (KEYFRAME_TYPE_CANVAS,
+                                     "composition", composition,
+                                     NULL));
 }
 
 static void
@@ -54,6 +56,8 @@ keyframe_canvas_finalize (GObject *object)
 {
     KeyframeCanvas *self = (KeyframeCanvas *)object;
     KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (self);
+
+    g_object_unref (priv->composition);
 
     G_OBJECT_CLASS (keyframe_canvas_parent_class)->finalize (object);
 }
@@ -80,9 +84,13 @@ keyframe_canvas_set_property (GObject      *object,
                               GParamSpec   *pspec)
 {
     KeyframeCanvas *self = KEYFRAME_CANVAS (object);
+    KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (self);
 
     switch (prop_id)
       {
+      case PROP_COMPOSITION:
+          priv->composition = g_value_get_object (value);
+          break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       }
@@ -105,8 +113,11 @@ keyframe_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
 			                            allocation.height
                                     ));
 
-    int canvas_width = 1920 * priv->zoom;
-    int canvas_height = 1080 * priv->zoom;
+    int comp_width, comp_height;
+    g_object_get (priv->composition, "width", &comp_width, "height", &comp_height, NULL);
+
+    int canvas_width = comp_width * priv->zoom;
+    int canvas_height = comp_height * priv->zoom;
 
     int canvas_x = (allocation.width/2)-(canvas_width/2) + priv->x;
     int canvas_y = (allocation.height/2)-(canvas_height/2) + priv->y;
@@ -160,20 +171,6 @@ keyframe_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
 }
 
 static void
-keyframe_canvas_class_init (KeyframeCanvasClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-    object_class->finalize = keyframe_canvas_finalize;
-    object_class->get_property = keyframe_canvas_get_property;
-    object_class->set_property = keyframe_canvas_set_property;
-
-    GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
-
-    widget_class->snapshot = keyframe_canvas_snapshot;
-}
-
-static void
 cb_gesture_begin (GtkGesture       *gesture,
                   GdkEventSequence *sequence,
                   KeyframeCanvas   *canvas)
@@ -196,7 +193,7 @@ cb_gesture_update (GtkGesture       *gesture,
 
     double x, y, scale;
     gtk_gesture_get_bounding_box_center (gesture, &x, &y);
-    scale = gtk_gesture_zoom_get_scale_delta (gesture);
+    scale = gtk_gesture_zoom_get_scale_delta (GTK_GESTURE_ZOOM (gesture));
 
     double delta_x = x - priv->start_x;
     double delta_y = y - priv->start_y;
@@ -224,44 +221,82 @@ cb_gesture_end (GtkGesture       *gesture,
 }
 
 static void
+keyframe_canvas_constructed (GObject *self)
+{
+    KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (KEYFRAME_CANVAS (self));
+    g_assert (priv->composition != NULL);
+
+    // Render Frame
+    KeyframeRenderer *renderer = keyframe_renderer_new ();
+
+    {
+        int width, height;
+        g_object_get (priv->composition, "width", &width, "height", &height, NULL);
+
+        keyframe_renderer_begin_frame (renderer,
+                                   width * priv->resolution_factor,
+                                   height * priv->resolution_factor);
+
+        GSList *layers = keyframe_composition_get_layers (priv->composition);
+        for (GSList *l = layers; l != NULL; l = l->next)
+        {
+            KeyframeLayer *layer = l->data;
+            g_assert (KEYFRAME_IS_LAYER (layer));
+
+            keyframe_layer_fill_command_buffer (layer, renderer);
+        }
+
+        priv->surface = keyframe_renderer_end_frame (renderer);
+    }
+
+    /* Always chain up to the parent constructed function to complete object
+    * initialisation. */
+    G_OBJECT_CLASS (keyframe_canvas_parent_class)->constructed (self);
+}
+
+static void
+keyframe_canvas_class_init (KeyframeCanvasClass *klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+    object_class->finalize = keyframe_canvas_finalize;
+    object_class->get_property = keyframe_canvas_get_property;
+    object_class->set_property = keyframe_canvas_set_property;
+    object_class->constructed = keyframe_canvas_constructed;
+
+    GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
+
+    widget_class->snapshot = keyframe_canvas_snapshot;
+
+    properties [PROP_COMPOSITION] =
+        g_param_spec_object ("composition", "Composition", "Composition",
+                             KEYFRAME_TYPE_COMPOSITION, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+    g_object_class_install_properties (object_class, N_PROPS, properties);
+}
+
+static void
 keyframe_canvas_init (KeyframeCanvas *self)
 {
     KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (self);
 
-    KeyframeLayer *layer1 = keyframe_layer_geometry_new ("layer1");
-    KeyframeLayer *layer2 = keyframe_layer_text_new ("layer2");
-    KeyframeLayer *layer3 = keyframe_layer_geometry_new ("layer3");
-    KeyframeLayer *layer4 = keyframe_layer_geometry_new ("layer4");
+    // Setup Widget Signals
+    priv->zoom_gesture = gtk_gesture_zoom_new ();
+    g_signal_connect (priv->zoom_gesture, "begin", G_CALLBACK (cb_gesture_begin), self);
+    g_signal_connect (priv->zoom_gesture, "update", G_CALLBACK (cb_gesture_update), self);
+    g_signal_connect (priv->zoom_gesture, "end", G_CALLBACK (cb_gesture_end), self);
 
-    int width = 1920;
-    int height = 1080;
+    gtk_event_controller_set_propagation_phase (GTK_EVENT_CONTROLLER (priv->zoom_gesture),
+                                                GTK_PHASE_BUBBLE);
+    gtk_widget_add_controller (GTK_WIDGET (self), GTK_EVENT_CONTROLLER (priv->zoom_gesture));
 
+    // Set Canvas Properties
     // TODO: Only apply resolution factor to bitmap layers? (e.g. exclude text)
     priv->resolution_factor = 1; //0.25;
     priv->zoom = 0.5f; //1.0f;
     priv->x = 0;
     priv->y = 0;
     priv->clip = false;
-
-    KeyframeRenderer *renderer = keyframe_renderer_new ();
-
-    keyframe_renderer_begin_frame (renderer,
-                                   width * priv->resolution_factor,
-                                   height * priv->resolution_factor);
-    keyframe_layer_fill_command_buffer (layer1, renderer);
-    keyframe_layer_fill_command_buffer (layer2, renderer);
-    priv->surface = keyframe_renderer_end_frame (renderer);
-
-
-    // Setup Widget Signals
-    priv->zoom_gesture = gtk_gesture_zoom_new ();
-    g_signal_connect (priv->zoom_gesture, "begin", cb_gesture_begin, self);
-    g_signal_connect (priv->zoom_gesture, "update", cb_gesture_update, self);
-    g_signal_connect (priv->zoom_gesture, "end", cb_gesture_end, self);
-
-    gtk_event_controller_set_propagation_phase (GTK_EVENT_CONTROLLER (priv->zoom_gesture),
-                                                GTK_PHASE_BUBBLE);
-    gtk_widget_add_controller (GTK_WIDGET (self), GTK_EVENT_CONTROLLER (priv->zoom_gesture));
 
     // For debugging missing fonts
     // GtkWidget *dlg = gtk_font_chooser_dialog_new ("Fonts", NULL);

@@ -2,6 +2,8 @@
 
 #include <gtk/gtk.h>
 
+#include "keyframe-composition.h"
+
 G_BEGIN_DECLS
 
 #define KEYFRAME_TYPE_CANVAS (keyframe_canvas_get_type())
@@ -13,6 +15,6 @@ struct _KeyframeCanvasClass
   GtkWidgetClass parent_class;
 };
 
-KeyframeCanvas *keyframe_canvas_new (void);
+GtkWidget *keyframe_canvas_new (KeyframeComposition *composition);
 
 G_END_DECLS

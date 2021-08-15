@@ -57,7 +57,6 @@ keyframe_layer_set_property (GObject      *object,
         case PROP_NAME:
             g_free (priv->name);
             priv->name = g_value_dup_string (value);
-            g_print ("Layer Name: %s\n", priv->name);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

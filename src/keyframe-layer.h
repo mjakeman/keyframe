@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glib-object.h>
+#include <glib-2.0/glib-object.h>
 
 #include "keyframe-renderer.h"
 

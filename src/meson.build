@@ -7,7 +7,8 @@ keyframe_sources = [
 	'keyframe-layer-geometry.c',
 	'keyframe-layer-text.c',
 	'keyframe-canvas.c',
-	'keyframe-renderer.c'
+	'keyframe-renderer.c',
+	'keyframe-composition.c'
 ]
 
 keyframe_deps = [

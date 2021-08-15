@@ -19,6 +19,7 @@
 #include "keyframe-config.h"
 #include "keyframe-window.h"
 #include "keyframe-canvas.h"
+#include "keyframe-layers.h"
 
 #include <libpanel.h>
 
@@ -68,12 +69,18 @@ keyframe_window_add_document (KeyframeWindow *self)
     PanelWidget *widget;
     PanelSaveDelegate *save_delegate;
     GtkWidget *canvas;
-    char *title;
 
     g_return_if_fail (KEYFRAME_IS_WINDOW (self));
 
-    title = g_strdup_printf ("Composition %u", ++count);
-    canvas = keyframe_canvas_new ();
+    char *title = g_strdup_printf ("Composition %u", ++count);
+    KeyframeComposition *composition = keyframe_composition_new (title, 1920, 1080, 30);
+
+    keyframe_composition_push_layer (composition, keyframe_layer_geometry_new ("layer1"));
+    keyframe_composition_push_layer (composition, keyframe_layer_text_new ("layer2"));
+    // keyframe_composition_push_layer (composition, keyframe_layer_geometry_new ("layer3"));
+    // keyframe_composition_push_layer (composition, keyframe_layer_geometry_new ("layer4"));
+
+    canvas = keyframe_canvas_new (composition);
 
     save_delegate = panel_save_delegate_new ();
     panel_save_delegate_set_title (save_delegate, title);
