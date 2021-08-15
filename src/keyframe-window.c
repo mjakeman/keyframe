@@ -19,7 +19,7 @@
 #include "keyframe-config.h"
 #include "keyframe-window.h"
 #include "keyframe-canvas.h"
-#include "keyframe-layers.h"
+#include "model/keyframe-layers.h"
 
 #include <libpanel.h>
 

@@ -2,7 +2,7 @@
 
 #include <gtk/gtk.h>
 
-#include "keyframe-composition.h"
+#include "model/keyframe-composition.h"
 
 G_BEGIN_DECLS
 

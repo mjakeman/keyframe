@@ -1,6 +1,6 @@
 #include "keyframe-canvas.h"
 
-#include "keyframe-layers.h"
+#include "model/keyframe-layers.h"
 #include "keyframe-renderer.h"
 
 typedef struct

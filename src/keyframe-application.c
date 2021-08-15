@@ -19,7 +19,7 @@
 #include "keyframe-application.h"
 #include "keyframe-window.h"
 #include "keyframe-timeline.h"
-#include "keyframe-layer.h"
+#include "model/keyframe-layers.h"
 
 struct _KeyframeApplication
 {
