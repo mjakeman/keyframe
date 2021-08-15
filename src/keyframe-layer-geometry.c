@@ -71,8 +71,6 @@ keyframe_layer_geometry_set_property (GObject      *object,
 static void
 keyframe_layer_geometry_fill_command_buffer (KeyframeLayer *self, KeyframeRenderer *renderer)
 {
-    g_print ("Boo!\n");
-
     cairo_t *cr = keyframe_renderer_get_cairo (renderer);
 
     int i, j;

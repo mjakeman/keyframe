@@ -78,11 +78,8 @@ keyframe_renderer_class_init (KeyframeRendererClass *klass)
 }
 
 void
-keyframe_renderer_begin_frame (KeyframeRenderer *self)
+keyframe_renderer_begin_frame (KeyframeRenderer *self, int width, int height)
 {
-    int width = 800;
-    int height = 600;
-
     KeyframeRendererPrivate *priv = keyframe_renderer_get_instance_private (self);
     priv->surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
     priv->cr = cairo_create (priv->surface);

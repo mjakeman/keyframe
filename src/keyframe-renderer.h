@@ -18,7 +18,7 @@ KeyframeRenderer *keyframe_renderer_new (void);
 cairo_t *keyframe_renderer_get_cairo (KeyframeRenderer *self);
 
 void
-keyframe_renderer_begin_frame (KeyframeRenderer *self);
+keyframe_renderer_begin_frame (KeyframeRenderer *self, int width, int height);
 
 cairo_surface_t *
 keyframe_renderer_end_frame (KeyframeRenderer *self);
