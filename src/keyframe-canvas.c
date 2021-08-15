@@ -2,6 +2,7 @@
 
 #include "keyframe-layer.h"
 #include "keyframe-layer-geometry.h"
+#include "keyframe-layer-text.h"
 
 #include "keyframe-renderer.h"
 
@@ -111,12 +112,26 @@ keyframe_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
     int canvas_y = (allocation.height/2)-(canvas_height/2) + priv->y;
 
     cairo_rectangle (cr, canvas_x, canvas_y, canvas_width, canvas_height);
-    cairo_set_source_rgb (cr, 0, 0, 0);
-    cairo_fill (cr);
+    cairo_clip (cr);
+
+    // Draw checkerboard background (TODO: Save?)
+    for (int i = 0; i < allocation.width/10; i++)
+    {
+        for (int j = 0; j < allocation.height/10; j++)
+        {
+            if ((i % 2 || j % 2) && !(i % 2 && j % 2))
+                cairo_set_source_rgb (cr, 0.75, 0.75, 0.75);
+            else
+                cairo_set_source_rgb (cr, 1, 1, 1);
+
+            cairo_rectangle (cr, i*10, j*10, 10, 10);
+            cairo_fill (cr);
+        }
+    }
 
     // Whether the canvas should be clipped
-    if (priv->clip)
-        cairo_clip (cr);
+    if (!priv->clip)
+        cairo_reset_clip (cr);
 
     // Blit surface to canvas area
     {
@@ -136,7 +151,6 @@ keyframe_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
 
         cairo_restore (cr);
     }
-
 
     cairo_set_source_rgb (cr, 0.6, 0.6, 0.6);
     cairo_rectangle (cr, canvas_x, canvas_y, canvas_width, canvas_height);
@@ -187,6 +201,8 @@ cb_gesture_update (GtkGesture       *gesture,
     double delta_x = x - priv->start_x;
     double delta_y = y - priv->start_y;
 
+    // TODO: CLAMP based on widget dimensions rather than source dimensions
+    // This becomes a problem with large image sizes (e.g. 4K, etc)
     priv->zoom = CLAMP (priv->old_zoom * scale, MIN_ZOOM, MAX_ZOOM);
     priv->x = priv->old_x + delta_x;
     priv->y = priv->old_y + delta_y;
@@ -213,14 +229,15 @@ keyframe_canvas_init (KeyframeCanvas *self)
     KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (self);
 
     KeyframeLayer *layer1 = keyframe_layer_geometry_new ("layer1");
-    KeyframeLayer *layer2 = keyframe_layer_geometry_new ("layer2");
+    KeyframeLayer *layer2 = keyframe_layer_text_new ("layer2");
     KeyframeLayer *layer3 = keyframe_layer_geometry_new ("layer3");
     KeyframeLayer *layer4 = keyframe_layer_geometry_new ("layer4");
 
     int width = 1920;
     int height = 1080;
 
-    priv->resolution_factor = 0.25;
+    // TODO: Only apply resolution factor to bitmap layers? (e.g. exclude text)
+    priv->resolution_factor = 1; //0.25;
     priv->zoom = 0.5f; //1.0f;
     priv->x = 0;
     priv->y = 0;
@@ -232,6 +249,7 @@ keyframe_canvas_init (KeyframeCanvas *self)
                                    width * priv->resolution_factor,
                                    height * priv->resolution_factor);
     keyframe_layer_fill_command_buffer (layer1, renderer);
+    keyframe_layer_fill_command_buffer (layer2, renderer);
     priv->surface = keyframe_renderer_end_frame (renderer);
 
 
@@ -244,4 +262,8 @@ keyframe_canvas_init (KeyframeCanvas *self)
     gtk_event_controller_set_propagation_phase (GTK_EVENT_CONTROLLER (priv->zoom_gesture),
                                                 GTK_PHASE_BUBBLE);
     gtk_widget_add_controller (GTK_WIDGET (self), GTK_EVENT_CONTROLLER (priv->zoom_gesture));
+
+    // For debugging missing fonts
+    // GtkWidget *dlg = gtk_font_chooser_dialog_new ("Fonts", NULL);
+    // gtk_window_present (GTK_WINDOW (dlg));
 }

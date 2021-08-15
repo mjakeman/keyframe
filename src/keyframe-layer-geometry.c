@@ -2,7 +2,7 @@
 
 typedef struct
 {
-
+    int padding;
 } KeyframeLayerGeometryPrivate;
 
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (KeyframeLayerGeometry, keyframe_layer_geometry, KEYFRAME_TYPE_LAYER)
@@ -73,6 +73,12 @@ keyframe_layer_geometry_fill_command_buffer (KeyframeLayer *self, KeyframeRender
 {
     cairo_t *cr = keyframe_renderer_get_cairo (renderer);
 
+    int width = keyframe_renderer_get_width (renderer);
+    int height = keyframe_renderer_get_height (renderer);
+
+    cairo_save (cr);
+    cairo_scale (cr, width, height);
+
     int i, j;
     cairo_pattern_t *radpat, *linpat;
 
@@ -96,6 +102,8 @@ keyframe_layer_geometry_fill_command_buffer (KeyframeLayer *self, KeyframeRender
     cairo_rectangle (cr, 0.0, 0.0, 1, 1);
     cairo_set_source (cr, linpat);
     cairo_fill (cr);
+
+    cairo_restore (cr);
 
 }
 

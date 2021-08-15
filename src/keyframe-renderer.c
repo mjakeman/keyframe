@@ -4,6 +4,7 @@ typedef struct
 {
     cairo_surface_t *surface;
     cairo_t *cr;
+    int width, height;
 } KeyframeRendererPrivate;
 
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (KeyframeRenderer, keyframe_renderer, G_TYPE_OBJECT)
@@ -83,8 +84,10 @@ keyframe_renderer_begin_frame (KeyframeRenderer *self, int width, int height)
     KeyframeRendererPrivate *priv = keyframe_renderer_get_instance_private (self);
     priv->surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
     priv->cr = cairo_create (priv->surface);
+    priv->width = width;
+    priv->height = height;
 
-    cairo_scale (priv->cr, width, height);
+    // cairo_scale (priv->cr, width, height);
 }
 
 cairo_surface_t *
@@ -99,9 +102,23 @@ keyframe_renderer_end_frame (KeyframeRenderer *self)
     return result;
 }
 
+int keyframe_renderer_get_width (KeyframeRenderer *self)
+{
+    KeyframeRendererPrivate *priv = keyframe_renderer_get_instance_private (self);
+    return priv->width;
+}
+
+int keyframe_renderer_get_height (KeyframeRenderer *self)
+{
+    KeyframeRendererPrivate *priv = keyframe_renderer_get_instance_private (self);
+    return priv->height;
+}
+
 cairo_t *keyframe_renderer_get_cairo (KeyframeRenderer *self)
 {
     KeyframeRendererPrivate *priv = keyframe_renderer_get_instance_private (self);
+
+    // TODO: Save and Restore?
 
     if (priv->cr)
         return priv->cr;
