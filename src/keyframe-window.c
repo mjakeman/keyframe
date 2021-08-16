@@ -22,6 +22,7 @@
 #include "keyframe-timeline.h"
 #include "keyframe-composition-manager.h"
 #include "model/keyframe-layers.h"
+#include "keyframe-export-dialog.h"
 
 #include <libpanel.h>
 
@@ -35,6 +36,7 @@ struct _KeyframeWindow
     PanelGrid           *grid;
     PanelDock           *dock;
     KeyframeTimeline    *timeline;
+    GtkButton           *render_btn;
 };
 
 G_DEFINE_TYPE (KeyframeWindow, keyframe_window, ADW_TYPE_APPLICATION_WINDOW)
@@ -77,7 +79,7 @@ keyframe_window_add_document (KeyframeWindow *self)
     KeyframeComposition *composition = keyframe_composition_manager_new_composition (self->manager);
     GtkWidget *canvas = keyframe_canvas_new (composition);
 
-    const char *title;
+    char *title = NULL;
     g_object_get (composition, "title", &title, NULL);
     g_print ("Title: %s\n", title);
 
@@ -199,11 +201,27 @@ keyframe_window_class_init (KeyframeWindowClass *klass)
     gtk_widget_class_bind_template_child (widget_class, KeyframeWindow, grid);
     gtk_widget_class_bind_template_child (widget_class, KeyframeWindow, dock);
     gtk_widget_class_bind_template_child (widget_class, KeyframeWindow, timeline);
+    gtk_widget_class_bind_template_child (widget_class, KeyframeWindow, render_btn);
     gtk_widget_class_bind_template_callback (widget_class, create_frame_cb);
 
     gtk_widget_class_install_action (widget_class, "document.new", NULL, add_document_action);
 
     gtk_widget_class_add_binding_action (widget_class, GDK_KEY_n, GDK_CONTROL_MASK, "document.new", NULL);
+}
+
+static void
+cb_render_btn_click (GtkButton      *btn,
+                     KeyframeWindow *self)
+{
+    KeyframeComposition *composition = keyframe_composition_manager_get_current (self->manager);
+
+    if (composition == NULL)
+        return;
+
+    KeyframeExportDialog *dlg = keyframe_export_dialog_new (composition);
+    gtk_window_set_transient_for (GTK_WINDOW (dlg), GTK_WINDOW (self));
+    gtk_window_set_modal (GTK_WINDOW (dlg), true);
+    gtk_widget_show (dlg);
 }
 
 static void
@@ -213,4 +231,6 @@ keyframe_window_init (KeyframeWindow *self)
 
     self->manager = keyframe_composition_manager_new ();
     g_object_set (self->timeline, "manager", self->manager, NULL);
+
+    g_signal_connect (self->render_btn, "clicked", cb_render_btn_click, self);
 }

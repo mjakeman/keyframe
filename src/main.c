@@ -25,6 +25,9 @@ int
 main (int   argc,
       char *argv[])
 {
+    /* init GStreamer */
+    gst_init (&argc, &argv);
+
 	g_autoptr(KeyframeApplication) app = NULL;
 	int ret;
 

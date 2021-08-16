@@ -6,6 +6,7 @@ keyframe_sources = [
 	'keyframe-canvas.c',
 	'keyframe-renderer.c',
 	'keyframe-composition-manager.c',
+	'keyframe-export-dialog.c',
 	'model/keyframe-layer.c',
 	'model/keyframe-layer-geometry.c',
 	'model/keyframe-layer-text.c',
@@ -15,7 +16,9 @@ keyframe_sources = [
 keyframe_deps = [
 	dependency('gtk4', version : '>=4.3'),
 	dependency('libadwaita-1', fallback : ['libadwaita', 'libadwaita_dep']),
-    dependency('libpanel', fallback : ['libpanel', 'libpanel_dep'])
+    dependency('libpanel', fallback : ['libpanel', 'libpanel_dep']),
+    dependency('gstreamer-1.0'),
+    dependency('gstreamer-app-1.0')
 ]
 
 gnome = import('gnome')

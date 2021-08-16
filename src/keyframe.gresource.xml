@@ -4,5 +4,6 @@
     <file>keyframe-window.ui</file>
     <file>gtk/help-overlay.ui</file>
     <file preprocess="xml-stripblanks">icons/cameras-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/camera-web-symbolic.svg</file>
   </gresource>
 </gresources>
