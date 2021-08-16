@@ -102,7 +102,7 @@ static void prepare_buffer(GstAppSrc* appsrc, KeyframeComposition *composition) 
     guint size;
     GstFlowReturn ret;
 
-    if (frames++ > 10) {
+    if (frames++ > 0) {
         gst_app_src_end_of_stream (appsrc);
         return;
     }
@@ -185,10 +185,10 @@ cb_render (GtkWidget *btn, KeyframeExportDialog *self)
     pipeline = gst_pipeline_new ("pipeline");
     appsrc = gst_element_factory_make ("appsrc", "source");
     conv = gst_element_factory_make ("videoconvert", "conv");
-    // enc = gst_element_factory_make ("x264enc", "enc");
+    enc = gst_element_factory_make ("pngenc", "enc");
     // mux = gst_element_factory_make ("matroskamux", "mux");
-    videosink = gst_element_factory_make ("autovideosink", "videosink");
-    // videosink = gst_element_factory_make ("filesink", "videosink");
+    // videosink = gst_element_factory_make ("autovideosink", "videosink");
+    videosink = gst_element_factory_make ("filesink", "videosink");
 
     if (!appsrc || !conv || !enc || !mux || !videosink) {
         g_print ("Something went wrong!\n");
@@ -203,9 +203,9 @@ cb_render (GtkWidget *btn, KeyframeExportDialog *self)
 			         "height", G_TYPE_INT, height,
 			         "framerate", GST_TYPE_FRACTION, 0, 1,
 			         NULL), NULL);
-    // g_object_set (G_OBJECT (videosink), "location", "test.mkv", NULL);
-    gst_bin_add_many (GST_BIN (pipeline), appsrc, conv, /*enc, mux,*/ videosink, NULL);
-    gst_element_link_many (appsrc, conv, /*enc, mux,*/ videosink, NULL);
+    g_object_set (G_OBJECT (videosink), "location", "test.png", NULL);
+    gst_bin_add_many (GST_BIN (pipeline), appsrc, conv, enc, /*mux,*/ videosink, NULL);
+    gst_element_link_many (appsrc, conv, enc, /*mux,*/ videosink, NULL);
 
     // setup appsrc
     g_object_set (G_OBJECT (appsrc),
