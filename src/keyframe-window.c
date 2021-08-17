@@ -200,6 +200,16 @@ cb_export_dialog_response (GtkDialog           *self,
         g_print ("Beginning Export Job\n");
         export_composition_gstreamer (composition);
         g_print ("Ending Export Job\n");
+
+        GtkWidget *msg =
+            gtk_message_dialog_new (NULL,
+                                    GTK_DIALOG_MODAL,
+                                    GTK_MESSAGE_INFO,
+                                    GTK_BUTTONS_OK_CANCEL,
+                                    "Exported file 'test' to your home directory.");
+
+        g_signal_connect (msg, "response", G_CALLBACK (gtk_window_destroy), NULL);
+        gtk_widget_show (msg);
     }
 
     gtk_window_destroy (GTK_WINDOW (self));

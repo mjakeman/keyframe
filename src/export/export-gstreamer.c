@@ -61,8 +61,8 @@ static void prepare_buffer(GstAppSrc* appsrc, KeyframeComposition *composition) 
 
     if (ret != GST_FLOW_OK) {
         /* something wrong, stop pushing */
-        // g_main_loop_quit (loop);
-        g_print ("Oops!\n");
+        g_warning ("An error occurred while writing frames.\n");
+        gst_app_src_end_of_stream (appsrc);
     }
 }
 
@@ -155,9 +155,9 @@ export_composition_gstreamer (KeyframeComposition *composition)
         gst_message_unref (msg);
     }
 
-    /* clean up */
-    // gst_element_set_state (pipeline, GST_STATE_NULL);
-    // gst_object_unref (GST_OBJECT (pipeline));
+    // clean up
+    gst_element_set_state (pipeline, GST_STATE_NULL);
+    gst_object_unref (GST_OBJECT (pipeline));
 
     g_print ("Finished %s\n", title);
 }
