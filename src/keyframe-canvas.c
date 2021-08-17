@@ -41,6 +41,8 @@ static GParamSpec *properties [N_PROPS];
  *
  * Create a new #KeyframeCanvas.
  *
+ * @composition: (transfer full): The #KeyframeComposition this canvas will display.
+ *
  * Returns: (transfer full): a newly created #KeyframeCanvas
  */
 GtkWidget *
@@ -89,7 +91,7 @@ keyframe_canvas_set_property (GObject      *object,
     switch (prop_id)
       {
       case PROP_COMPOSITION:
-          priv->composition = g_object_ref (g_value_get_object (value));
+          priv->composition = g_value_get_object (value);
           break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

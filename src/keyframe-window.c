@@ -77,11 +77,11 @@ keyframe_window_add_document (KeyframeWindow *self)
     g_return_if_fail (KEYFRAME_IS_WINDOW (self));
 
     KeyframeComposition *composition = keyframe_composition_manager_new_composition (self->manager);
-    GtkWidget *canvas = keyframe_canvas_new (composition);
 
     char *title = NULL;
     g_object_get (composition, "title", &title, NULL);
-    g_print ("Title: %s\n", title);
+
+    GtkWidget *canvas = keyframe_canvas_new (composition);
 
     save_delegate = panel_save_delegate_new ();
     panel_save_delegate_set_title (save_delegate, title);
@@ -186,6 +186,50 @@ keyframe_window_constructed (GObject *object)
     (void)panel_grid_column_get_row (panel_grid_get_column (self->grid, 0), 0);
 }
 
+#include "export/export-gstreamer.h"
+
+static void
+cb_export_dialog_response (GtkDialog           *self,
+                           gint                 response_id,
+                           KeyframeComposition *composition)
+{
+    KeyframeExportDialog *dlg = KEYFRAME_EXPORT_DIALOG (self);
+
+    if (response_id == GTK_RESPONSE_OK)
+    {
+        g_print ("Beginning Export Job\n");
+        export_composition_gstreamer (composition);
+        g_print ("Ending Export Job\n");
+    }
+
+    gtk_window_destroy (GTK_WINDOW (self));
+}
+
+static void
+cb_render_btn_click (GtkButton      *btn,
+                     KeyframeWindow *self)
+{
+    KeyframeComposition *composition = keyframe_composition_manager_get_current (self->manager);
+
+    if (composition == NULL)
+        return;
+
+    KeyframeExportDialog *dlg = keyframe_export_dialog_new (composition);
+    gtk_window_set_transient_for (GTK_WINDOW (dlg), GTK_WINDOW (self));
+    gtk_window_set_modal (GTK_WINDOW (dlg), true);
+    gtk_widget_show (dlg);
+
+    g_signal_connect (dlg, "response", G_CALLBACK (cb_export_dialog_response), composition);
+}
+
+static void
+render_document_action (GtkWidget  *widget,
+                        const char *action_name,
+                        GVariant   *param)
+{
+    cb_render_btn_click (NULL, KEYFRAME_WINDOW (widget));
+}
+
 static void
 keyframe_window_class_init (KeyframeWindowClass *klass)
 {
@@ -205,23 +249,10 @@ keyframe_window_class_init (KeyframeWindowClass *klass)
     gtk_widget_class_bind_template_callback (widget_class, create_frame_cb);
 
     gtk_widget_class_install_action (widget_class, "document.new", NULL, add_document_action);
+    gtk_widget_class_install_action (widget_class, "document.render", NULL, render_document_action);
 
     gtk_widget_class_add_binding_action (widget_class, GDK_KEY_n, GDK_CONTROL_MASK, "document.new", NULL);
-}
-
-static void
-cb_render_btn_click (GtkButton      *btn,
-                     KeyframeWindow *self)
-{
-    KeyframeComposition *composition = keyframe_composition_manager_get_current (self->manager);
-
-    if (composition == NULL)
-        return;
-
-    KeyframeExportDialog *dlg = keyframe_export_dialog_new (composition);
-    gtk_window_set_transient_for (GTK_WINDOW (dlg), GTK_WINDOW (self));
-    gtk_window_set_modal (GTK_WINDOW (dlg), true);
-    gtk_widget_show (dlg);
+    gtk_widget_class_add_binding_action (widget_class, GDK_KEY_r, GDK_CONTROL_MASK, "document.render", NULL);
 }
 
 static void

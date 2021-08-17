@@ -1,7 +1,6 @@
 #include "keyframe-export-dialog.h"
 
-#include <gst/gst.h>
-#include <gst/app/gstappsrc.h>
+#include <adwaita.h>
 
 typedef struct
 {
@@ -31,6 +30,7 @@ keyframe_export_dialog_new (KeyframeComposition *composition)
 {
     return g_object_new (KEYFRAME_TYPE_EXPORT_DIALOG,
                          "composition", composition,
+                         "use-header-bar", 1,
                          NULL);
 }
 
@@ -95,173 +95,65 @@ keyframe_export_dialog_class_init (KeyframeExportDialogClass *klass)
     g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
-static void prepare_buffer(GstAppSrc* appsrc, KeyframeComposition *composition) {
-    static int frames = 0;
-    static GstClockTime timestamp = 0;
-    GstBuffer *buffer;
-    guint size;
-    GstFlowReturn ret;
-
-    if (frames++ > 0) {
-        gst_app_src_end_of_stream (appsrc);
-        return;
-    }
-
-    int width, height;
-
-    g_object_get (composition,
-                  "width", &width,
-                  "height", &height,
-                  NULL);
-
-    size = width * height * 4;
-
-    {
-        KeyframeRenderer *renderer = keyframe_renderer_new ();
-
-        int width, height;
-        g_object_get (composition, "width", &width, "height", &height, NULL);
-
-        keyframe_renderer_begin_frame (renderer,
-                                   width,
-                                   height);
-
-        GSList *layers = keyframe_composition_get_layers (composition);
-        for (GSList *l = layers; l != NULL; l = l->next)
-        {
-            KeyframeLayer *layer = l->data;
-            g_assert (KEYFRAME_IS_LAYER (layer));
-
-            keyframe_layer_fill_command_buffer (layer, renderer);
-        }
-
-        cairo_surface_t *surface = keyframe_renderer_end_frame (renderer);
-
-        unsigned char *data = cairo_image_surface_get_data (surface);
-        buffer = gst_buffer_new_wrapped_full(0, (gpointer)data, size, 0, size, NULL, NULL);
-
-        cairo_surface_destroy (surface);
-        g_object_unref (renderer);
-    }
-
-    GST_BUFFER_PTS (buffer) = timestamp;
-    GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale_int (1, GST_SECOND, 4);
-
-    timestamp += GST_BUFFER_DURATION (buffer);
-
-    ret = gst_app_src_push_buffer(appsrc, buffer);
-
-    if (ret != GST_FLOW_OK) {
-        /* something wrong, stop pushing */
-        // g_main_loop_quit (loop);
-        g_print ("Oops!\n");
-    }
-}
-
-static void cb_need_data (GstElement *appsrc, guint unused_size, KeyframeComposition *composition) {
-    g_print ("Need data!\n");
-    prepare_buffer((GstAppSrc*)appsrc, composition);
-}
-
-static void
-cb_render (GtkWidget *btn, KeyframeExportDialog *self)
-{
-    KeyframeExportDialogPrivate *priv = keyframe_export_dialog_get_instance_private (self);
-
-    char *title;
-    int width, height;
-
-    g_object_get (priv->composition,
-                  "title", &title,
-                  "width", &width,
-                  "height", &height,
-                  NULL);
-
-    g_print ("Rendering %s\n", title);
-
-    GstElement *pipeline, *appsrc, *conv, *enc, *mux, *videosink;
-
-    // setup pipeline
-    pipeline = gst_pipeline_new ("pipeline");
-    appsrc = gst_element_factory_make ("appsrc", "source");
-    conv = gst_element_factory_make ("videoconvert", "conv");
-    enc = gst_element_factory_make ("pngenc", "enc");
-    // mux = gst_element_factory_make ("matroskamux", "mux");
-    // videosink = gst_element_factory_make ("autovideosink", "videosink");
-    videosink = gst_element_factory_make ("filesink", "videosink");
-
-    if (!appsrc || !conv || !enc || !mux || !videosink) {
-        g_print ("Something went wrong!\n");
-        return;
-    }
-
-    // setup
-    g_object_set (G_OBJECT (appsrc), "caps",
-	    gst_caps_new_simple ("video/x-raw",
-			         "format", G_TYPE_STRING, "BGRA",
-			         "width", G_TYPE_INT, width,
-			         "height", G_TYPE_INT, height,
-			         "framerate", GST_TYPE_FRACTION, 0, 1,
-			         NULL), NULL);
-    g_object_set (G_OBJECT (videosink), "location", "test.png", NULL);
-    gst_bin_add_many (GST_BIN (pipeline), appsrc, conv, enc, /*mux,*/ videosink, NULL);
-    gst_element_link_many (appsrc, conv, enc, /*mux,*/ videosink, NULL);
-
-    // setup appsrc
-    g_object_set (G_OBJECT (appsrc),
-	    "stream-type", 0, // GST_APP_STREAM_TYPE_STREAM
-	    "format", GST_FORMAT_TIME,
-        // "is-live", TRUE,
-        NULL);
-
-    g_signal_connect (appsrc, "need-data", G_CALLBACK (cb_need_data), priv->composition);
-
-    // pipeline
-    gst_element_set_state (pipeline, GST_STATE_PLAYING);
-
-    GstBus *bus = gst_element_get_bus (pipeline);
-    GstMessage *msg =
-      gst_bus_timed_pop_filtered (bus, GST_CLOCK_TIME_NONE,
-      GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
-
-    if (msg != NULL) {
-    GError *err;
-    gchar *debug_info;
-
-    switch (GST_MESSAGE_TYPE (msg)) {
-        case GST_MESSAGE_ERROR:
-            gst_message_parse_error (msg, &err, &debug_info);
-            g_printerr ("Error received from element %s: %s\n",
-                GST_OBJECT_NAME (msg->src), err->message);
-            g_printerr ("Debugging information: %s\n",
-                debug_info ? debug_info : "none");
-            g_clear_error (&err);
-            g_free (debug_info);
-            break;
-        case GST_MESSAGE_EOS:
-            g_print ("End-Of-Stream reached.\n");
-            break;
-        default:
-            /* We should not reach here because we only asked for ERRORs and EOS */
-            g_printerr ("Unexpected message received.\n");
-            break;
-        }
-        gst_message_unref (msg);
-    }
-
-    /* clean up */
-    // gst_element_set_state (pipeline, GST_STATE_NULL);
-    // gst_object_unref (GST_OBJECT (pipeline));
-
-    g_print ("Finished %s\n", title);
-}
-
 static void
 keyframe_export_dialog_init (KeyframeExportDialog *self)
 {
-    GtkWidget *box = gtk_dialog_get_content_area (GTK_DIALOG (self));
+    gtk_dialog_add_buttons (GTK_DIALOG (self),
+                            "Render", GTK_RESPONSE_OK,
+                            "Close", GTK_RESPONSE_CANCEL,
+                            NULL);
 
-    GtkWidget *btn = gtk_button_new_with_label ("Render");
+    gtk_dialog_set_default_response (GTK_DIALOG (self), GTK_RESPONSE_OK);
+    gtk_window_set_title (GTK_WINDOW (self), "Export & Render");
+    gtk_window_set_default_size (GTK_WINDOW (self), 450, 600);
+    gtk_window_set_resizable (GTK_WINDOW (self), false);
+
+    // Dialog Contents
+    GtkWidget *content_area = gtk_dialog_get_content_area (GTK_DIALOG (self));
+    gtk_orientable_set_orientation (GTK_ORIENTABLE (content_area), GTK_ORIENTATION_VERTICAL);
+
+    GtkWidget *scroll = gtk_scrolled_window_new ();
+    gtk_widget_set_vexpand (scroll, true);
+    gtk_scrolled_window_set_min_content_height (scroll, 400);
+    gtk_box_append (GTK_BOX (content_area), scroll);
+
+    AdwClamp *clamp = adw_clamp_new ();
+    adw_clamp_set_maximum_size (clamp, 400);
+    adw_clamp_set_tightening_threshold (clamp, 300);
+    gtk_widget_set_margin_start (clamp, 12);
+    gtk_widget_set_margin_end (clamp, 12);
+    gtk_widget_set_margin_top (clamp, 32);
+    gtk_widget_set_margin_bottom (clamp, 32);
+    gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroll), clamp);
+
+    GtkWidget *box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+    adw_clamp_set_child (clamp, box);
+
+    GtkWidget *preview = gtk_image_new_from_resource ("/com/mattjakeman/Keyframe/icons/camera-web-symbolic.svg");
+    // gtk_picture_set_paintable (preview, GdkPaintable *paintable);
+    gtk_widget_set_size_request (preview, -1, 200);
+    gtk_box_append (GTK_BOX (box), preview);
+
+    GtkWidget *prefs = gtk_list_box_new ();
+    gtk_list_box_set_selection_mode (GTK_LIST_BOX (prefs), GTK_SELECTION_NONE);
+    gtk_widget_add_css_class (prefs, "content");
+    gtk_box_append (GTK_BOX (box), prefs);
+
+    AdwActionRow *action_row = adw_action_row_new ();
+    adw_preferences_row_set_title (action_row, "Output Location");
+    GtkWidget *action_row_widget = gtk_button_new_with_label ("File Location");
+    gtk_widget_set_valign (action_row_widget, GTK_ALIGN_CENTER);
+    adw_action_row_add_suffix (action_row, action_row_widget);
+    gtk_list_box_append (prefs, action_row);
+
+    AdwActionRow *action_row2 = adw_action_row_new ();
+    adw_preferences_row_set_title (action_row2, "Format");
+    GtkWidget *action_row_widget2 = gtk_drop_down_new_from_strings (NULL);
+    gtk_widget_set_valign (action_row_widget2, GTK_ALIGN_CENTER);
+    adw_action_row_add_suffix (action_row2, action_row_widget2);
+    gtk_list_box_append (prefs, action_row2);
+
+    /*GtkWidget *btn = gtk_button_new_with_label ("Render");
     g_signal_connect (btn, "clicked", cb_render, self);
-    gtk_box_append (GTK_BOX (box), btn);
+    gtk_box_append (GTK_BOX (box), btn);*/
 }

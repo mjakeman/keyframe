@@ -10,7 +10,8 @@ keyframe_sources = [
 	'model/keyframe-layer.c',
 	'model/keyframe-layer-geometry.c',
 	'model/keyframe-layer-text.c',
-	'model/keyframe-composition.c'
+	'model/keyframe-composition.c',
+	'export/export-gstreamer.c'
 ]
 
 keyframe_deps = [
