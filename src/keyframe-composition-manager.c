@@ -88,7 +88,15 @@ keyframe_composition_manager_new_composition (KeyframeCompositionManager *self)
     KeyframeComposition *composition = keyframe_composition_new (title, 1920, 1080, 30);
 
     keyframe_composition_push_layer (composition, KEYFRAME_LAYER (keyframe_layer_geometry_new ("layer1")));
-    keyframe_composition_push_layer (composition, KEYFRAME_LAYER (keyframe_layer_text_new ("layer2")));
+
+    KeyframeLayer *layer_text = keyframe_layer_text_new ("layer2");
+    g_object_set (layer_text, "markup", "<span foreground='purple'>ا</span><span foreground='red'>َ</span>ل<span foreground='blue'>ْ</span>ع<span foreground='red'>َ</span>ر<span foreground='red'>َ</span>ب<span foreground='red'>ِ</span>ي<span foreground='green'>ّ</span><span foreground='red'>َ</span>ة<span foreground='blue'>ُ</span>", NULL);
+    keyframe_composition_push_layer (composition, KEYFRAME_LAYER (layer_text));
+
+    layer_text = keyframe_layer_text_new ("layer3");
+    g_object_set (layer_text, "markup", "<span foreground='blue' size='x-large'>Blue text</span> is <i>cool</i>!", NULL);
+    g_object_set (layer_text, "x", 50.0, "y", 300.0, NULL);
+    keyframe_composition_push_layer (composition, KEYFRAME_LAYER (layer_text));
 
     priv->compositions = g_slist_append (priv->compositions, g_object_ref (composition));
     priv->current = composition;

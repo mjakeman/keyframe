@@ -19,9 +19,9 @@ static GParamSpec *properties [N_PROPS];
  *
  * Create a new #KeyframeLayerGeometry.
  *
- * Returns: (transfer full): a newly created #KeyframeLayerGeometry
+ * Returns: (transfer full): a newly created #KeyframeLayer
  */
-KeyframeLayerGeometry *
+KeyframeLayer *
 keyframe_layer_geometry_new (const char *name)
 {
     return g_object_new (KEYFRAME_TYPE_LAYER_GEOMETRY,
@@ -77,6 +77,11 @@ keyframe_layer_geometry_fill_command_buffer (KeyframeLayer *self, KeyframeRender
     int height = keyframe_renderer_get_height (renderer);
 
     cairo_save (cr);
+
+    float x, y;
+    g_object_get (self, "x", &x, "y", &y, NULL);
+    cairo_move_to (cr, x, y);
+
     cairo_scale (cr, width, height);
 
     cairo_set_source_rgb (cr, 1, 1, 1);

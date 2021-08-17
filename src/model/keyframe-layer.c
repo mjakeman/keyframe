@@ -4,6 +4,7 @@ typedef struct
 {
     char *name;
     char *type;
+    float x, y;
 } KeyframeLayerPrivate;
 
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (KeyframeLayer, keyframe_layer, G_TYPE_OBJECT)
@@ -12,6 +13,8 @@ enum {
     PROP_0,
     PROP_NAME,
     PROP_TYPE,
+    PROP_X,
+    PROP_Y,
     N_PROPS
 };
 
@@ -43,6 +46,12 @@ keyframe_layer_get_property (GObject    *object,
         case PROP_TYPE:
             g_value_set_string (value, KEYFRAME_LAYER_GET_CLASS (self)->type (self));
             break;
+        case PROP_X:
+            g_value_set_float (value, priv->x);
+            break;
+        case PROP_Y:
+            g_value_set_float (value, priv->y);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
@@ -62,6 +71,12 @@ keyframe_layer_set_property (GObject      *object,
         case PROP_NAME:
             g_free (priv->name);
             priv->name = g_value_dup_string (value);
+            break;
+        case PROP_X:
+            priv->x = g_value_get_float (value);
+            break;
+        case PROP_Y:
+            priv->y = g_value_get_float (value);
             break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -102,11 +117,17 @@ keyframe_layer_class_init (KeyframeLayerClass *klass)
     object_class->get_property = keyframe_layer_get_property;
     object_class->set_property = keyframe_layer_set_property;
 
-    properties[PROP_NAME] =
+    properties [PROP_NAME] =
         g_param_spec_string ("name", "Name", "Name", NULL, G_PARAM_READWRITE);
 
-    properties[PROP_TYPE] =
+    properties [PROP_TYPE] =
         g_param_spec_string ("type", "Type", "Type", NULL, G_PARAM_READABLE);
+
+    properties [PROP_X] =
+        g_param_spec_float ("x", "X-Coord", "X-Coordinate of the Layer", -G_MAXFLOAT, G_MAXFLOAT, 0, G_PARAM_READWRITE);
+
+    properties [PROP_Y] =
+        g_param_spec_float ("y", "Y-Coord", "Y-Coordinate of the Layer", -G_MAXFLOAT, G_MAXFLOAT, 0, G_PARAM_READWRITE);
 
     g_object_class_install_properties (object_class, N_PROPS, properties);
 }
