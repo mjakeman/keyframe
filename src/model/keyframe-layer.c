@@ -118,7 +118,7 @@ keyframe_layer_class_init (KeyframeLayerClass *klass)
     object_class->set_property = keyframe_layer_set_property;
 
     properties [PROP_NAME] =
-        g_param_spec_string ("name", "Name", "Name", NULL, G_PARAM_READWRITE);
+        g_param_spec_string ("name", "Name", "Name", "Untitled Layer", G_PARAM_READWRITE);
 
     properties [PROP_TYPE] =
         g_param_spec_string ("type", "Type", "Type", NULL, G_PARAM_READABLE);

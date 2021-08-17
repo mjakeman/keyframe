@@ -25,6 +25,9 @@ void
 keyframe_composition_push_layer (KeyframeComposition *self,
                                  KeyframeLayer       *layer);
 
+void
+keyframe_composition_delete_layer (KeyframeComposition *self, KeyframeLayer *layer);
+
 GSList *
 keyframe_composition_get_layers (KeyframeComposition *self);
 

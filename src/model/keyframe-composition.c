@@ -22,6 +22,14 @@ enum {
 
 static GParamSpec *properties [N_PROPS];
 
+enum
+{
+	CHANGED,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL];
+
 /**
  * keyframe_composition_new:
  *
@@ -112,6 +120,15 @@ keyframe_composition_push_layer (KeyframeComposition *self, KeyframeLayer *layer
 {
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
     priv->layers = g_slist_append (priv->layers, layer); // TODO: Prepend?
+    g_signal_emit (self, signals[CHANGED], 0);
+}
+
+void
+keyframe_composition_delete_layer (KeyframeComposition *self, KeyframeLayer *layer)
+{
+    KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
+    priv->layers = g_slist_remove (priv->layers, layer);
+    g_signal_emit (self, signals[CHANGED], 0);
 }
 
 GSList *
@@ -136,6 +153,18 @@ keyframe_composition_class_init (KeyframeCompositionClass *klass)
     properties [PROP_FRAMERATE] = g_param_spec_float ("framerate", "Framerate", "Framerate", 0, 1000, 0, G_PARAM_READWRITE);
 
     g_object_class_install_properties (object_class, N_PROPS, properties);
+
+    signals[CHANGED] =
+        g_signal_newv ("changed",
+                 G_TYPE_FROM_CLASS (object_class),
+                 G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+                 NULL /* closure */,
+                 NULL /* accumulator */,
+                 NULL /* accumulator data */,
+                 NULL /* C marshaller */,
+                 G_TYPE_NONE /* return_type */,
+                 0     /* n_params */,
+                 NULL  /* param_types */);
 }
 
 static void

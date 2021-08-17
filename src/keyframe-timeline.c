@@ -14,6 +14,7 @@ typedef struct
     KeyframeComposition *composition;
 
     ulong signal_id;
+    ulong comp_update_id;
 } KeyframeTimelinePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (KeyframeTimeline, keyframe_timeline, GTK_TYPE_WIDGET)
@@ -174,21 +175,13 @@ bind_listitem_cb (GtkListItemFactory *factory,
 }
 
 static void
-keyframe_timeline_update_composition (KeyframeTimeline *self)
+keyframe_timeline_composition_changed (KeyframeComposition *composition,
+                                       KeyframeTimeline *self)
 {
     KeyframeTimelinePrivate *priv = keyframe_timeline_get_instance_private (self);
+    g_assert (composition == priv->composition);
 
-    if (priv->manager) {
-        priv->composition = keyframe_composition_manager_get_current (priv->manager);
-        g_print ("Updated!\n");
-    }
-
-    if (priv->composition == NULL)
-    {
-        gtk_column_view_set_model (GTK_COLUMN_VIEW (priv->col_view), NULL);
-        return;
-    }
-
+    // Update List model
     GListModel *model = create_layers_model_from_composition (priv->composition);
 
     GtkTreeListModel *treemodel = gtk_tree_list_model_new (model, FALSE, TRUE, create_layers_tree, NULL, NULL);
@@ -198,17 +191,136 @@ keyframe_timeline_update_composition (KeyframeTimeline *self)
 }
 
 static void
+keyframe_timeline_update_composition (KeyframeTimeline *self)
+{
+    KeyframeTimelinePrivate *priv = keyframe_timeline_get_instance_private (self);
+
+    if (priv->manager) {
+        KeyframeComposition *new_comp = keyframe_composition_manager_get_current (priv->manager);
+
+        // No change
+        if (new_comp == priv->composition)
+            return;
+
+        if (priv->composition)
+        {
+            g_signal_handler_disconnect (priv->composition, priv->comp_update_id);
+            g_object_unref (priv->composition);
+        }
+
+        priv->composition = g_object_ref (new_comp);
+        priv->comp_update_id = g_signal_connect (priv->composition, "changed", keyframe_timeline_composition_changed, self);
+        g_print ("Updated!\n");
+    }
+
+    if (priv->composition == NULL)
+    {
+        gtk_column_view_set_model (GTK_COLUMN_VIEW (priv->col_view), NULL);
+        return;
+    }
+
+    // Regenerate List Model
+    keyframe_timeline_composition_changed (priv->composition, self);
+}
+
+static void
+cb_new_text_layer (GtkButton *btn, KeyframeTimeline *self)
+{
+    KeyframeTimelinePrivate *priv = keyframe_timeline_get_instance_private (self);
+
+    if (!priv->composition)
+        return;
+
+    // TODO: This should really be an action
+    KeyframeLayer *layer = g_object_new (KEYFRAME_TYPE_LAYER_TEXT,
+                                         "name", "Untitled Layer",
+                                         "markup", "Hello World",
+                                         NULL);
+    keyframe_composition_push_layer (priv->composition, layer);
+}
+
+static void
+cb_new_layer_popover (GtkMenuButton *new_layer_btn, KeyframeTimeline *self)
+{
+    // New Layer Popover
+    GtkWidget *popover_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+
+    /*GtkWidget *popover_create_btn = gtk_button_new_with_label ("Create");
+    gtk_widget_add_css_class (popover_create_btn, "suggested-action");
+    gtk_box_append (GTK_BOX (popover_box), popover_create_btn);*/
+
+    GtkWidget *layer_btn = gtk_button_new_with_label ("Text");
+    g_signal_connect (layer_btn, "clicked", cb_new_text_layer, self);
+    gtk_box_append (GTK_BOX (popover_box), layer_btn);
+
+    layer_btn = gtk_button_new_with_label ("Geometry");
+    /*g_signal_connect (text, "clicked", cb_new_layer, )*/
+    gtk_box_append (GTK_BOX (popover_box), layer_btn);
+
+    GtkWidget *popover = gtk_popover_new ();
+    gtk_popover_set_child (popover, popover_box);
+
+    gtk_menu_button_set_popover (new_layer_btn, popover);
+}
+
+static void
+cb_delete_layer (GtkButton *btn, KeyframeTimeline *self)
+{
+    KeyframeTimelinePrivate *priv = keyframe_timeline_get_instance_private (self);
+    GtkSelectionModel *selection = gtk_column_view_get_model (priv->col_view);
+    GtkTreeListRow *tree_row = GTK_TREE_LIST_ROW (gtk_single_selection_get_selected_item (GTK_SINGLE_SELECTION (selection)));
+    KeyframeLayer *layer = KEYFRAME_LAYER (gtk_tree_list_row_get_item (tree_row));
+
+    char *name;
+    g_object_get (layer, "name", &name, NULL);
+    g_print ("Deleting layer %s", name);
+    g_free (name);
+
+    keyframe_composition_delete_layer (priv->composition, layer);
+
+    // self->composition ... delete?
+    // layer should probably have a reference to composition
+    //   -> e.g. composition owns layers and is responsible for freeing them
+}
+
+static void
 keyframe_timeline_init (KeyframeTimeline *self)
 {
     KeyframeTimelinePrivate *priv = keyframe_timeline_get_instance_private (self);
 
-    priv->sw = gtk_scrolled_window_new ();
-    priv->col_view = GTK_COLUMN_VIEW (gtk_column_view_new (NULL));
-
+    GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_widget_set_layout_manager (GTK_WIDGET (self), gtk_bin_layout_new ());
+    gtk_widget_set_parent (box, GTK_WIDGET (self));
+
+    // Toolbar
+    GtkWidget *toolbar = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+    gtk_widget_add_css_class (toolbar, "toolbar");
+    gtk_box_append (GTK_BOX (box), toolbar);
+
+
+
+    GtkWidget *add_layer_btn = gtk_menu_button_new ();
+    gtk_menu_button_set_icon_name (GTK_MENU_BUTTON (add_layer_btn), "document-new-symbolic");
+    gtk_menu_button_set_direction (GTK_MENU_BUTTON (add_layer_btn), GTK_ARROW_UP);
+    gtk_menu_button_set_create_popup_func (GTK_MENU_BUTTON (add_layer_btn),
+                                           cb_new_layer_popover,
+                                           g_object_ref (self),
+                                           g_object_unref);
+    gtk_box_append (GTK_BOX (toolbar), add_layer_btn);
+
+    GtkWidget *delete_layer_btn = gtk_button_new ();
+    gtk_button_set_child (GTK_BUTTON (delete_layer_btn), gtk_image_new_from_icon_name ("user-trash-symbolic"));
+    g_signal_connect (delete_layer_btn, "clicked", cb_delete_layer, self);
+    gtk_box_append (GTK_BOX (toolbar), delete_layer_btn);
+
+    // Timeline
+    priv->sw = gtk_scrolled_window_new ();
+    gtk_widget_set_hexpand (priv->sw, true);
+    gtk_box_append (box, priv->sw);
+
+    priv->col_view = GTK_COLUMN_VIEW (gtk_column_view_new (NULL));
     gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (priv->sw), GTK_WIDGET (priv->col_view));
     gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (priv->sw), 200);
-    gtk_widget_set_parent (priv->sw, GTK_WIDGET (self));
 
     gtk_column_view_set_reorderable (priv->col_view, false);
     gtk_column_view_set_show_column_separators (priv->col_view, true);

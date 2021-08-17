@@ -222,13 +222,16 @@ cb_gesture_end (GtkGesture       *gesture,
     priv->start_y = 0;
 }
 
-static void
-keyframe_canvas_constructed (GObject *self)
+static void render_frame (KeyframeCanvas *self)
 {
-    KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (KEYFRAME_CANVAS (self));
-    g_assert (priv->composition != NULL);
+    KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (self);
 
-    // Render Frame
+    if (priv->surface)
+    {
+        cairo_surface_destroy (priv->surface);
+        priv->surface = NULL;
+    }
+
     KeyframeRenderer *renderer = keyframe_renderer_new ();
 
     {
@@ -250,6 +253,33 @@ keyframe_canvas_constructed (GObject *self)
 
         priv->surface = keyframe_renderer_end_frame (renderer);
     }
+
+    g_object_unref (renderer);
+
+    gtk_widget_queue_draw (GTK_WIDGET (self));
+}
+
+static void
+invalidate_composition (KeyframeComposition *comp, KeyframeCanvas *self)
+{
+    KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (self);
+    g_assert (comp == priv->composition);
+
+    render_frame (self);
+}
+
+static void
+keyframe_canvas_constructed (GObject *obj)
+{
+    KeyframeCanvas *self = KEYFRAME_CANVAS (obj);
+    KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (self);
+    g_assert (priv->composition != NULL);
+
+    // Connect to changed handler
+    g_signal_connect (priv->composition, "changed", invalidate_composition, self);
+
+    // Render Frame
+    render_frame (self);
 
     /* Always chain up to the parent constructed function to complete object
     * initialisation. */
