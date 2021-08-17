@@ -41,6 +41,8 @@ static GParamSpec *properties [N_PROPS];
  *
  * Create a new #KeyframeCanvas.
  *
+ * @composition: (transfer full): The #KeyframeComposition this canvas will display.
+ *
  * Returns: (transfer full): a newly created #KeyframeCanvas
  */
 GtkWidget *

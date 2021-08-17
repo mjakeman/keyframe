@@ -79,6 +79,10 @@ keyframe_layer_geometry_fill_command_buffer (KeyframeLayer *self, KeyframeRender
     cairo_save (cr);
     cairo_scale (cr, width, height);
 
+    cairo_set_source_rgb (cr, 1, 1, 1);
+    cairo_rectangle (cr, 0, 0, 1, 0.25);
+    cairo_fill (cr);
+
     int i, j;
     cairo_pattern_t *radpat, *linpat;
 

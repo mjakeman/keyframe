@@ -91,7 +91,7 @@ keyframe_composition_set_property (GObject      *object,
     switch (prop_id)
       {
       case PROP_TITLE:
-          priv->title = g_value_get_string (value);
+          priv->title = g_value_dup_string (value);
           break;
       case PROP_WIDTH:
           priv->width = g_value_get_int (value);

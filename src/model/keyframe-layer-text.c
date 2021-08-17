@@ -9,8 +9,6 @@ typedef struct
 
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (KeyframeLayerText, keyframe_layer_text, KEYFRAME_TYPE_LAYER)
 
-
-
 enum {
     PROP_0,
     N_PROPS
