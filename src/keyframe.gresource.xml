@@ -5,5 +5,7 @@
     <file>gtk/help-overlay.ui</file>
     <file preprocess="xml-stripblanks">icons/cameras-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/camera-web-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/list-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/applications-multimedia-symbolic.svg</file>
   </gresource>
 </gresources>

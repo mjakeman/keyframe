@@ -19,6 +19,7 @@
 #include "keyframe-application.h"
 #include "keyframe-window.h"
 #include "keyframe-timeline.h"
+#include "keyframe-layer-list.h"
 #include "model/keyframe-layers.h"
 
 struct _KeyframeApplication
@@ -56,7 +57,12 @@ keyframe_application_activate (GApplication *app)
     // Ensure Types
     g_type_ensure (KEYFRAME_TYPE_WINDOW);
     g_type_ensure (KEYFRAME_TYPE_TIMELINE);
+    g_type_ensure (KEYFRAME_TYPE_LAYER_LIST);
+
+    // Ensure Layers
     g_type_ensure (KEYFRAME_TYPE_LAYER);
+    g_type_ensure (KEYFRAME_TYPE_LAYER_GEOMETRY);
+    g_type_ensure (KEYFRAME_TYPE_LAYER_TEXT);
 
     // Activate
     GtkWindow *window;

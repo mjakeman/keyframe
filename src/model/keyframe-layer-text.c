@@ -100,6 +100,12 @@ keyframe_layer_text_fill_command_buffer (KeyframeLayer *self, KeyframeRenderer *
     cairo_restore (cr);
 }
 
+static const char *
+keyframe_layer_text_type (KeyframeLayer *layer)
+{
+    return "Text";
+}
+
 static void
 keyframe_layer_text_class_init (KeyframeLayerTextClass *klass)
 {
@@ -112,6 +118,7 @@ keyframe_layer_text_class_init (KeyframeLayerTextClass *klass)
     KeyframeLayerClass *layer_class = KEYFRAME_LAYER_CLASS (klass);
 
     layer_class->fill_command_buffer = keyframe_layer_text_fill_command_buffer;
+    layer_class->type = keyframe_layer_text_type;
 }
 
 static void

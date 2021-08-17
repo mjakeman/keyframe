@@ -111,6 +111,12 @@ keyframe_layer_geometry_fill_command_buffer (KeyframeLayer *self, KeyframeRender
 
 }
 
+static const char *
+keyframe_layer_geometry_type (KeyframeLayer *layer)
+{
+    return "Geometry";
+}
+
 static void
 keyframe_layer_geometry_class_init (KeyframeLayerGeometryClass *klass)
 {
@@ -123,6 +129,7 @@ keyframe_layer_geometry_class_init (KeyframeLayerGeometryClass *klass)
     KeyframeLayerClass *layer_class = KEYFRAME_LAYER_CLASS (klass);
 
     layer_class->fill_command_buffer = keyframe_layer_geometry_fill_command_buffer;
+    layer_class->type = keyframe_layer_geometry_type;
 }
 
 static void

@@ -43,6 +43,17 @@
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="PanelFrame">
+                    <child>
+                      <object class="PanelWidget">
+                        <property name="icon-name">list-symbolic</property>
+                        <property name="title">Layer List</property>
+                        <property name="can-maximize">true</property>
+                        <child>
+                          <object class="KeyframeLayerList" id="layer_list">
+                          </object>
+                        </child>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>
@@ -64,8 +75,7 @@
                     <property name="orientation">horizontal</property>
                     <child>
                       <object class="PanelWidget">
-                        <property name="background-rgba">#fff</property>
-                        <property name="icon-name">video-joined-displays-symbolic</property>
+                        <property name="icon-name">applications-multimedia-symbolic</property>
                         <property name="title">Timeline</property>
                         <property name="can-maximize">true</property>
                         <child>

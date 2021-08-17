@@ -7,6 +7,7 @@ keyframe_sources = [
 	'keyframe-renderer.c',
 	'keyframe-composition-manager.c',
 	'keyframe-export-dialog.c',
+	'keyframe-layer-list.c',
 	'model/keyframe-layer.c',
 	'model/keyframe-layer-geometry.c',
 	'model/keyframe-layer-text.c',

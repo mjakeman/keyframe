@@ -13,6 +13,7 @@ G_DECLARE_DERIVABLE_TYPE (KeyframeLayer, keyframe_layer, KEYFRAME, LAYER, GObjec
 struct _KeyframeLayerClass
 {
   GObjectClass parent_class;
+  const char *(*type)(KeyframeLayer *self);
   void (*fill_command_buffer)(KeyframeLayer *self, KeyframeRenderer *renderer);
 };
 

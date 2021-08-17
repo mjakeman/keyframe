@@ -20,6 +20,7 @@
 #include "keyframe-window.h"
 #include "keyframe-canvas.h"
 #include "keyframe-timeline.h"
+#include "keyframe-layer-list.h"
 #include "keyframe-composition-manager.h"
 #include "model/keyframe-layers.h"
 #include "keyframe-export-dialog.h"
@@ -36,6 +37,7 @@ struct _KeyframeWindow
     PanelGrid           *grid;
     PanelDock           *dock;
     KeyframeTimeline    *timeline;
+    KeyframeLayerList   *layer_list;
     GtkButton           *render_btn;
 };
 
@@ -256,6 +258,7 @@ keyframe_window_class_init (KeyframeWindowClass *klass)
     gtk_widget_class_bind_template_child (widget_class, KeyframeWindow, dock);
     gtk_widget_class_bind_template_child (widget_class, KeyframeWindow, timeline);
     gtk_widget_class_bind_template_child (widget_class, KeyframeWindow, render_btn);
+    gtk_widget_class_bind_template_child (widget_class, KeyframeWindow, layer_list);
     gtk_widget_class_bind_template_callback (widget_class, create_frame_cb);
 
     gtk_widget_class_install_action (widget_class, "document.new", NULL, add_document_action);
@@ -270,8 +273,13 @@ keyframe_window_init (KeyframeWindow *self)
 {
     gtk_widget_init_template (GTK_WIDGET (self));
 
+    // Use Dark Mode (later make this configurable)
+    GtkSettings *settings = gtk_widget_get_settings (GTK_WIDGET (self));
+    g_object_set (settings, "gtk-application-prefer-dark-theme", 1, NULL);
+
     self->manager = keyframe_composition_manager_new ();
     g_object_set (self->timeline, "manager", self->manager, NULL);
+    g_object_set (self->layer_list, "manager", self->manager, NULL);
 
     g_signal_connect (self->render_btn, "clicked", cb_render_btn_click, self);
 }
