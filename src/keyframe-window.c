@@ -261,11 +261,11 @@ keyframe_window_class_init (KeyframeWindowClass *klass)
     gtk_widget_class_bind_template_child (widget_class, KeyframeWindow, layer_list);
     gtk_widget_class_bind_template_callback (widget_class, create_frame_cb);
 
-    gtk_widget_class_install_action (widget_class, "document.new", NULL, add_document_action);
-    gtk_widget_class_install_action (widget_class, "document.render", NULL, render_document_action);
+    gtk_widget_class_install_action (widget_class, "composition.new", NULL, add_document_action);
+    gtk_widget_class_install_action (widget_class, "composition.render", NULL, render_document_action);
 
-    gtk_widget_class_add_binding_action (widget_class, GDK_KEY_n, GDK_CONTROL_MASK, "document.new", NULL);
-    gtk_widget_class_add_binding_action (widget_class, GDK_KEY_r, GDK_CONTROL_MASK, "document.render", NULL);
+    gtk_widget_class_add_binding_action (widget_class, GDK_KEY_n, GDK_CONTROL_MASK, "composition.new", NULL);
+    gtk_widget_class_add_binding_action (widget_class, GDK_KEY_r, GDK_CONTROL_MASK, "composition.render", NULL);
 }
 
 static void

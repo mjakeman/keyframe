@@ -23,4 +23,8 @@ keyframe_composition_manager_new_composition (KeyframeCompositionManager *self);
 KeyframeComposition *
 keyframe_composition_manager_get_current (KeyframeCompositionManager *self);
 
+void
+keyframe_composition_manager_make_current (KeyframeCompositionManager *self,
+                                           KeyframeComposition        *composition);
+
 G_END_DECLS
