@@ -348,7 +348,7 @@ edit_layer_action (KeyframeTimeline *self,
 
     GtkWidget *dlg = keyframe_layer_properties_dialog_new (layer);
     gtk_window_set_transient_for (GTK_WINDOW (dlg), GTK_WINDOW (gtk_widget_get_root (self)));
-    gtk_window_set_modal (GTK_WINDOW (dlg), TRUE);
+    // gtk_window_set_modal (GTK_WINDOW (dlg), TRUE);
 
     KeyframeTimelinePrivate *priv = keyframe_timeline_get_instance_private (self);
     g_signal_connect_swapped (dlg, "response", keyframe_composition_invalidate, priv->composition);

@@ -201,7 +201,6 @@ keyframe_layer_list_update_composition (KeyframeLayerList   *self)
 
         priv->composition = g_object_ref (new_comp);
         priv->comp_update_id = g_signal_connect (priv->composition, "changed", keyframe_layer_list_composition_changed, self);
-        g_print ("Updated!\n");
     }
 
     if (priv->composition == NULL)

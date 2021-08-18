@@ -87,18 +87,18 @@ keyframe_composition_manager_new_composition (KeyframeCompositionManager *self)
     char *title = g_strdup_printf ("Composition %u", ++count);
     KeyframeComposition *composition = keyframe_composition_new (title, 1920, 1080, 30);
 
-    KeyframeLayer *layer_geom = keyframe_layer_geometry_new ("layer1", 1920, 1080 * 0.25);
+    KeyframeLayer *layer_geom = keyframe_layer_geometry_new ("Backdrop", 1920, 1080 * 0.25);
     keyframe_composition_push_layer (composition, layer_geom);
 
     // Doesn't really do anything, but it looks cool
-    KeyframeLayer *layer_cool_looking_pattern = keyframe_layer_cool_new ("layer2");
+    KeyframeLayer *layer_cool_looking_pattern = keyframe_layer_cool_new ("Pattern");
     keyframe_composition_push_layer (composition, layer_cool_looking_pattern);
 
-    KeyframeLayer *layer_text = keyframe_layer_text_new ("layer3", "");
+    KeyframeLayer *layer_text = keyframe_layer_text_new ("Text (Internationalised)", "");
     g_object_set (layer_text, "markup", "<span foreground='purple'>ا</span><span foreground='red'>َ</span>ل<span foreground='blue'>ْ</span>ع<span foreground='red'>َ</span>ر<span foreground='red'>َ</span>ب<span foreground='red'>ِ</span>ي<span foreground='green'>ّ</span><span foreground='red'>َ</span>ة<span foreground='blue'>ُ</span>", NULL);
     keyframe_composition_push_layer (composition, KEYFRAME_LAYER (layer_text));
 
-    layer_text = keyframe_layer_text_new ("layer4", "");
+    layer_text = keyframe_layer_text_new ("Text (Pango Markup)", "");
     g_object_set (layer_text, "markup", "<span foreground='blue' size='x-large'>Blue text</span> is <i>cool</i>!", NULL);
     g_object_set (layer_text, "x", 50.0, "y", 300.0, NULL);
     keyframe_composition_push_layer (composition, KEYFRAME_LAYER (layer_text));
@@ -115,6 +115,23 @@ keyframe_composition_manager_get_current (KeyframeCompositionManager *self)
 {
     KeyframeCompositionManagerPrivate *priv = keyframe_composition_manager_get_instance_private (self);
     return priv->current;
+}
+
+void
+keyframe_composition_manager_make_current (KeyframeCompositionManager *self,
+                                           KeyframeComposition        *composition)
+{
+    KeyframeCompositionManagerPrivate *priv = keyframe_composition_manager_get_instance_private (self);
+
+    // Only emit signal if current composition is changing
+    if (priv->current == composition)
+        return;
+
+    priv->current = composition;
+    g_signal_emit (self, signals[CURRENT_CHANGED], 0);
+
+    // TODO: Instead of having a "current-changed" signal, should
+    // we make it a property and emit a "notify::current" signal instead?
 }
 
 static void
