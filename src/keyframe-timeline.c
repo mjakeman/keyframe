@@ -102,23 +102,6 @@ keyframe_timeline_set_property (GObject      *object,
       }
 }
 
-static void
-keyframe_timeline_class_init (KeyframeTimelineClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-    object_class->finalize = keyframe_timeline_finalize;
-    object_class->get_property = keyframe_timeline_get_property;
-    object_class->set_property = keyframe_timeline_set_property;
-
-    properties [PROP_MANAGER] =
-        g_param_spec_object ("manager", "Manager", "Manager",
-                             KEYFRAME_TYPE_COMPOSITION_MANAGER,
-                             G_PARAM_WRITABLE);
-
-    g_object_class_install_properties (object_class, N_PROPS, properties);
-}
-
 static GListModel *
 create_layers_model_from_composition (KeyframeComposition *composition)
 {
@@ -174,6 +157,33 @@ bind_listitem_cb (GtkListItemFactory *factory,
 
     gtk_label_set_label (GTK_LABEL (label), layer_prop);
 }
+
+static KeyframeLayer *
+get_current_layer (KeyframeTimeline *self)
+{
+    KeyframeTimelinePrivate *priv = keyframe_timeline_get_instance_private (self);
+
+    if (!priv->composition)
+        return NULL;
+
+    GtkSelectionModel *selection = gtk_column_view_get_model (priv->col_view);
+    GtkTreeListRow *tree_row = GTK_TREE_LIST_ROW (gtk_single_selection_get_selected_item (GTK_SINGLE_SELECTION (selection)));
+    KeyframeLayer *layer = KEYFRAME_LAYER (gtk_tree_list_row_get_item (tree_row));
+
+    if (!(KEYFRAME_IS_LAYER (layer)))
+        return NULL;
+
+    return layer;
+}
+
+static void
+layer_activate_cb (GtkColumnView    *col_view,
+                   guint             position,
+                   KeyframeTimeline *self)
+{
+    gtk_widget_activate_action (GTK_WIDGET (self), "layer.edit", NULL);
+}
+
 
 static void
 keyframe_timeline_composition_changed (KeyframeComposition *composition,
@@ -302,26 +312,10 @@ cb_new_layer_popover (GtkMenuButton *new_layer_btn, KeyframeTimeline *self)
     gtk_menu_button_set_popover (new_layer_btn, popover);
 }
 
-static KeyframeLayer *
-get_current_layer (KeyframeTimeline *self)
-{
-    KeyframeTimelinePrivate *priv = keyframe_timeline_get_instance_private (self);
-
-    if (!priv->composition)
-        return NULL;
-
-    GtkSelectionModel *selection = gtk_column_view_get_model (priv->col_view);
-    GtkTreeListRow *tree_row = GTK_TREE_LIST_ROW (gtk_single_selection_get_selected_item (GTK_SINGLE_SELECTION (selection)));
-    KeyframeLayer *layer = KEYFRAME_LAYER (gtk_tree_list_row_get_item (tree_row));
-
-    if (!(KEYFRAME_IS_LAYER (layer)))
-        return NULL;
-
-    return layer;
-}
-
 static void
-cb_delete_layer (GtkButton *btn, KeyframeTimeline *self)
+delete_layer_action (KeyframeTimeline *self,
+                     const char       *action_name,
+                     GVariant         *param)
 {
     KeyframeTimelinePrivate *priv = keyframe_timeline_get_instance_private (self);
     KeyframeLayer *layer = get_current_layer (self);
@@ -337,7 +331,15 @@ cb_delete_layer (GtkButton *btn, KeyframeTimeline *self)
 }
 
 static void
-cb_edit_layer (GtkButton *btn, KeyframeTimeline *self)
+cb_delete_layer (GtkButton *btn, KeyframeTimeline *self)
+{
+    gtk_widget_activate_action (self, "layer.delete", NULL);
+}
+
+static void
+edit_layer_action (KeyframeTimeline *self,
+                   const char       *action_name,
+                   GVariant         *param)
 {
     KeyframeLayer *layer = get_current_layer (self);
 
@@ -352,6 +354,34 @@ cb_edit_layer (GtkButton *btn, KeyframeTimeline *self)
     g_signal_connect_swapped (dlg, "response", keyframe_composition_invalidate, priv->composition);
 
     gtk_widget_show (dlg);
+}
+
+static void
+cb_edit_layer (GtkButton *btn, KeyframeTimeline *self)
+{
+    gtk_widget_activate_action (GTK_WIDGET (self), "layer.edit", NULL);
+}
+
+static void
+keyframe_timeline_class_init (KeyframeTimelineClass *klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+    object_class->finalize = keyframe_timeline_finalize;
+    object_class->get_property = keyframe_timeline_get_property;
+    object_class->set_property = keyframe_timeline_set_property;
+
+    GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
+
+    gtk_widget_class_install_action (widget_class, "layer.edit", NULL, edit_layer_action);
+    gtk_widget_class_install_action (widget_class, "layer.delete", NULL, delete_layer_action);
+
+    properties [PROP_MANAGER] =
+        g_param_spec_object ("manager", "Manager", "Manager",
+                             KEYFRAME_TYPE_COMPOSITION_MANAGER,
+                             G_PARAM_WRITABLE);
+
+    g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -398,6 +428,7 @@ keyframe_timeline_init (KeyframeTimeline *self)
 
     gtk_column_view_set_reorderable (priv->col_view, false);
     gtk_column_view_set_show_column_separators (priv->col_view, true);
+    g_signal_connect (priv->col_view, "activate", layer_activate_cb, self);
 
     GtkListItemFactory *name_factory = gtk_signal_list_item_factory_new ();
     g_signal_connect (name_factory, "setup", setup_listitem_cb, NULL);
