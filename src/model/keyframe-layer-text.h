@@ -15,6 +15,6 @@ struct _KeyframeLayerTextClass
   KeyframeLayerClass parent_class;
 };
 
-KeyframeLayer *keyframe_layer_text_new (const char *name);
+KeyframeLayer *keyframe_layer_text_new (const char *name, const char *markup);
 
 G_END_DECLS

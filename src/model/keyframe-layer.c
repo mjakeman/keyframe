@@ -118,16 +118,32 @@ keyframe_layer_class_init (KeyframeLayerClass *klass)
     object_class->set_property = keyframe_layer_set_property;
 
     properties [PROP_NAME] =
-        g_param_spec_string ("name", "Name", "Name", "Untitled Layer", G_PARAM_READWRITE);
+        g_param_spec_string ("name",
+                             "Name",
+                             "A name to distinguish the layer.",
+                             "Untitled Layer",
+                             G_PARAM_READWRITE);
 
     properties [PROP_TYPE] =
-        g_param_spec_string ("type", "Type", "Type", NULL, G_PARAM_READABLE);
+        g_param_spec_string ("type",
+                             "Type",
+                             "Type of Layer",
+                             NULL,
+                             G_PARAM_READABLE);
 
     properties [PROP_X] =
-        g_param_spec_float ("x", "X-Coord", "X-Coordinate of the Layer", -G_MAXFLOAT, G_MAXFLOAT, 0, G_PARAM_READWRITE);
+        g_param_spec_float ("x",
+                            "X-Coord",
+                            "Position of the layer on the x-axis (in pixels).",
+                            -G_MAXFLOAT, G_MAXFLOAT, 0,
+                            G_PARAM_READWRITE);
 
     properties [PROP_Y] =
-        g_param_spec_float ("y", "Y-Coord", "Y-Coordinate of the Layer", -G_MAXFLOAT, G_MAXFLOAT, 0, G_PARAM_READWRITE);
+        g_param_spec_float ("y",
+                            "Y-Coord",
+                            "Position of the layer on the y-axis (in pixels).",
+                            -G_MAXFLOAT, G_MAXFLOAT, 0,
+                            G_PARAM_READWRITE);
 
     g_object_class_install_properties (object_class, N_PROPS, properties);
 }

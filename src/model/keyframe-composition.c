@@ -138,6 +138,12 @@ keyframe_composition_get_layers (KeyframeComposition *self)
     return priv->layers;
 }
 
+void
+keyframe_composition_invalidate (KeyframeComposition *self)
+{
+    g_signal_emit (self, signals[CHANGED], 0);
+}
+
 static void
 keyframe_composition_class_init (KeyframeCompositionClass *klass)
 {

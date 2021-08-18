@@ -87,13 +87,18 @@ keyframe_composition_manager_new_composition (KeyframeCompositionManager *self)
     char *title = g_strdup_printf ("Composition %u", ++count);
     KeyframeComposition *composition = keyframe_composition_new (title, 1920, 1080, 30);
 
-    keyframe_composition_push_layer (composition, KEYFRAME_LAYER (keyframe_layer_geometry_new ("layer1")));
+    KeyframeLayer *layer_geom = keyframe_layer_geometry_new ("layer1", 1920, 1080 * 0.25);
+    keyframe_composition_push_layer (composition, layer_geom);
 
-    KeyframeLayer *layer_text = keyframe_layer_text_new ("layer2");
+    // Doesn't really do anything, but it looks cool
+    KeyframeLayer *layer_cool_looking_pattern = keyframe_layer_cool_new ("layer2");
+    keyframe_composition_push_layer (composition, layer_cool_looking_pattern);
+
+    KeyframeLayer *layer_text = keyframe_layer_text_new ("layer3", "");
     g_object_set (layer_text, "markup", "<span foreground='purple'>ا</span><span foreground='red'>َ</span>ل<span foreground='blue'>ْ</span>ع<span foreground='red'>َ</span>ر<span foreground='red'>َ</span>ب<span foreground='red'>ِ</span>ي<span foreground='green'>ّ</span><span foreground='red'>َ</span>ة<span foreground='blue'>ُ</span>", NULL);
     keyframe_composition_push_layer (composition, KEYFRAME_LAYER (layer_text));
 
-    layer_text = keyframe_layer_text_new ("layer3");
+    layer_text = keyframe_layer_text_new ("layer4", "");
     g_object_set (layer_text, "markup", "<span foreground='blue' size='x-large'>Blue text</span> is <i>cool</i>!", NULL);
     g_object_set (layer_text, "x", 50.0, "y", 300.0, NULL);
     keyframe_composition_push_layer (composition, KEYFRAME_LAYER (layer_text));

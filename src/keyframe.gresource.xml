@@ -9,5 +9,6 @@
     <file preprocess="xml-stripblanks">icons/applications-multimedia-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/document-new-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/user-trash-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/edit-symbolic.svg</file>
   </gresource>
 </gresources>

@@ -19,4 +19,6 @@ struct _KeyframeLayerClass
 
 void keyframe_layer_fill_command_buffer (KeyframeLayer *self, KeyframeRenderer *renderer);
 
+#include "keyframe-layers.h"
+
 G_END_DECLS

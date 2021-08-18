@@ -15,6 +15,6 @@ struct _KeyframeLayerGeometryClass
   KeyframeLayerClass parent_class;
 };
 
-KeyframeLayer *keyframe_layer_geometry_new (const char *name);
+KeyframeLayer *keyframe_layer_geometry_new (const char *name, float width, float height);
 
 G_END_DECLS

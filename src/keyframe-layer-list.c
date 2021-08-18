@@ -14,6 +14,7 @@ typedef struct
     KeyframeComposition *composition;
 
     ulong signal_id;
+    ulong comp_update_id;
 } KeyframeLayerListPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (KeyframeLayerList, keyframe_layer_list, GTK_TYPE_WIDGET)
@@ -139,13 +140,6 @@ create_layers_model_from_composition (KeyframeComposition *composition)
     return G_LIST_MODEL (model);
 }
 
-static GListModel *
-create_layers_tree (gpointer layer_ptr, gpointer unused)
-{
-    // TODO: Add support for sublayers at some point
-    return NULL;
-}
-
 static void
 setup_listitem_cb (GtkListItemFactory *factory,
                    GtkListItem        *list_item)
@@ -174,12 +168,39 @@ bind_listitem_cb (GtkListItemFactory *factory,
 }
 
 static void
-keyframe_layer_list_update_composition (KeyframeLayerList *self)
+keyframe_layer_list_composition_changed (KeyframeComposition *composition,
+                                         KeyframeLayerList   *self)
+{
+    KeyframeLayerListPrivate *priv = keyframe_layer_list_get_instance_private (self);
+    g_assert (composition == priv->composition);
+
+    // Update List model
+    GListModel *model = create_layers_model_from_composition (priv->composition);
+    GtkSingleSelection *selection = gtk_no_selection_new (G_LIST_MODEL (model));
+
+    gtk_column_view_set_model (GTK_COLUMN_VIEW (priv->col_view), GTK_SELECTION_MODEL (selection));
+}
+
+static void
+keyframe_layer_list_update_composition (KeyframeLayerList   *self)
 {
     KeyframeLayerListPrivate *priv = keyframe_layer_list_get_instance_private (self);
 
     if (priv->manager) {
-        priv->composition = keyframe_composition_manager_get_current (priv->manager);
+        KeyframeComposition *new_comp = keyframe_composition_manager_get_current (priv->manager);
+
+        // No change
+        if (new_comp == priv->composition)
+            return;
+
+        if (priv->composition)
+        {
+            g_signal_handler_disconnect (priv->composition, priv->comp_update_id);
+            g_object_unref (priv->composition);
+        }
+
+        priv->composition = g_object_ref (new_comp);
+        priv->comp_update_id = g_signal_connect (priv->composition, "changed", keyframe_layer_list_composition_changed, self);
         g_print ("Updated!\n");
     }
 
@@ -189,13 +210,8 @@ keyframe_layer_list_update_composition (KeyframeLayerList *self)
         return;
     }
 
-    GListModel *model = create_layers_model_from_composition (priv->composition);
-    GtkNoSelection *selection = gtk_no_selection_new (model);
-
-    // GtkTreeListModel *treemodel = gtk_tree_list_model_new (model, FALSE, TRUE, create_layers_tree, NULL, NULL);
-    // GtkSingleSelection *selection = gtk_single_selection_new (G_LIST_MODEL (treemodel));
-
-    gtk_column_view_set_model (GTK_COLUMN_VIEW (priv->col_view), GTK_SELECTION_MODEL (selection));
+    // Regenerate List Model
+    keyframe_layer_list_composition_changed (priv->composition, self);
 }
 
 static void

@@ -4,7 +4,6 @@
 
 typedef struct
 {
-    int padding;
     char *markup;
 } KeyframeLayerTextPrivate;
 
@@ -26,10 +25,11 @@ static GParamSpec *properties [N_PROPS];
  * Returns: (transfer full): a newly created #KeyframeLayer
  */
 KeyframeLayer *
-keyframe_layer_text_new (const char *name)
+keyframe_layer_text_new (const char *name, const char *markup)
 {
     return g_object_new (KEYFRAME_TYPE_LAYER_TEXT,
                          "name", name,
+                         "markup", markup,
                          NULL);
 }
 
@@ -90,7 +90,7 @@ keyframe_layer_text_fill_command_buffer (KeyframeLayer *self, KeyframeRenderer *
 
     float x, y;
     g_object_get (self, "x", &x, "y", &y, NULL);
-    cairo_move_to (cr, x, y);
+    cairo_translate (cr, x, y);
 
     int width = keyframe_renderer_get_width (renderer);
     int height = keyframe_renderer_get_height (renderer);
@@ -136,7 +136,12 @@ keyframe_layer_text_class_init (KeyframeLayerTextClass *klass)
     layer_class->fill_command_buffer = keyframe_layer_text_fill_command_buffer;
     layer_class->type = keyframe_layer_text_type;
 
-    properties [PROP_MARKUP] = g_param_spec_string ("markup", "Markup", "Pango Markup", "Text", G_PARAM_READWRITE);
+    properties [PROP_MARKUP] =
+        g_param_spec_string ("markup",
+                             "Markup",
+                             "The text to display using Pango Markup.",
+                             "Text",
+                             G_PARAM_READWRITE);
 
     g_object_class_install_properties (object_class, N_PROPS, properties);
 }

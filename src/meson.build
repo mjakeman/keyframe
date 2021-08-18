@@ -8,9 +8,11 @@ keyframe_sources = [
 	'keyframe-composition-manager.c',
 	'keyframe-export-dialog.c',
 	'keyframe-layer-list.c',
+	'keyframe-layer-properties-dialog.c',
 	'model/keyframe-layer.c',
 	'model/keyframe-layer-geometry.c',
 	'model/keyframe-layer-text.c',
+	'model/keyframe-layer-cool.c',
 	'model/keyframe-composition.c',
 	'export/export-gstreamer.c'
 ]
