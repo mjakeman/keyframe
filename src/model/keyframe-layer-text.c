@@ -101,6 +101,7 @@ keyframe_layer_text_fill_command_buffer (KeyframeLayer *self, KeyframeRenderer *
     int scale = (width > height) ? width : height;
     cairo_scale (cr, scale, scale);
 
+    // TODO: Creating a new layout every frame is very bad!
     PangoLayout *layout = pango_cairo_create_layout (cr);
     // pango_layout_set_text (layout, "Hello World!\n", -1);
     pango_layout_set_markup (layout, priv->markup, -1);
@@ -112,6 +113,8 @@ keyframe_layer_text_fill_command_buffer (KeyframeLayer *self, KeyframeRenderer *
     cairo_set_source_rgb (cr, 0, 0, 0);
     pango_cairo_update_layout (cr, layout);
     pango_cairo_show_layout (cr, layout);
+
+    g_object_unref (layout);
 
     cairo_restore (cr);
 }
