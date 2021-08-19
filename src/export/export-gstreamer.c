@@ -10,10 +10,12 @@ static void prepare_buffer(GstAppSrc* appsrc, KeyframeComposition *composition) 
     guint size;
     GstFlowReturn ret;
 
-    if (frames++ > 0) {
+    if (frames++ >= 500) {
         gst_app_src_end_of_stream (appsrc);
         return;
     }
+
+    g_print ("Writing frame %d\n", frames);
 
     int width, height;
 
@@ -30,9 +32,7 @@ static void prepare_buffer(GstAppSrc* appsrc, KeyframeComposition *composition) 
         int width, height;
         g_object_get (composition, "width", &width, "height", &height, NULL);
 
-        keyframe_renderer_begin_frame (renderer,
-                                   width,
-                                   height);
+        keyframe_renderer_begin_frame (renderer, frames, width, height);
 
         GSList *layers = keyframe_composition_get_layers (composition);
         for (GSList *l = layers; l != NULL; l = l->next)
@@ -53,7 +53,7 @@ static void prepare_buffer(GstAppSrc* appsrc, KeyframeComposition *composition) 
     }
 
     GST_BUFFER_PTS (buffer) = timestamp;
-    GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale_int (1, GST_SECOND, 4);
+    GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale_int (1, GST_SECOND, 60); /* 15fps */
 
     timestamp += GST_BUFFER_DURATION (buffer);
 
@@ -91,8 +91,8 @@ export_composition_gstreamer (KeyframeComposition *composition)
     pipeline = gst_pipeline_new ("pipeline");
     appsrc = gst_element_factory_make ("appsrc", "source");
     conv = gst_element_factory_make ("videoconvert", "conv");
-    enc = gst_element_factory_make ("pngenc", "enc");
-    // mux = gst_element_factory_make ("matroskamux", "mux");
+    enc = gst_element_factory_make ("vp8enc", "enc");
+    mux = gst_element_factory_make ("webmmux", "mux");
     // videosink = gst_element_factory_make ("autovideosink", "videosink");
     videosink = gst_element_factory_make ("filesink", "videosink");
 
@@ -107,11 +107,11 @@ export_composition_gstreamer (KeyframeComposition *composition)
 			         "format", G_TYPE_STRING, "BGRA",
 			         "width", G_TYPE_INT, width,
 			         "height", G_TYPE_INT, height,
-			         "framerate", GST_TYPE_FRACTION, 0, 1,
+			         "framerate", GST_TYPE_FRACTION, 0, 1, /* variable framerate */
 			         NULL), NULL);
-    g_object_set (G_OBJECT (videosink), "location", "test.png", NULL);
-    gst_bin_add_many (GST_BIN (pipeline), appsrc, conv, enc, /*mux,*/ videosink, NULL);
-    gst_element_link_many (appsrc, conv, enc, /*mux,*/ videosink, NULL);
+    g_object_set (G_OBJECT (videosink), "location", "test.webm", NULL);
+    gst_bin_add_many (GST_BIN (pipeline), appsrc, conv, enc, mux, videosink, NULL);
+    gst_element_link_many (appsrc, conv, enc, mux, videosink, NULL);
 
     // setup appsrc
     g_object_set (G_OBJECT (appsrc),

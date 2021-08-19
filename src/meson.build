@@ -14,6 +14,7 @@ keyframe_sources = [
 	'model/keyframe-layer-text.c',
 	'model/keyframe-layer-cool.c',
 	'model/keyframe-composition.c',
+	'model/keyframe-value-float.c',
 	'export/export-gstreamer.c'
 ]
 

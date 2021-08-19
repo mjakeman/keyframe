@@ -18,6 +18,12 @@ typedef struct
     float old_zoom;
     double start_x, start_y;
     double old_x, old_y;
+
+    // TODO: We don't want Canvas controlling the current time. That should either
+    // be a feature of the composition itself, or the composition manager. Maybe
+    // some kind of CompositionObserver class should be used for this?
+    //  -> VERY TEMPORARY
+    float timestamp;
 } KeyframeCanvasPrivate;
 
 #include <math.h>
@@ -238,9 +244,9 @@ static void render_frame (KeyframeCanvas *self)
         int width, height;
         g_object_get (priv->composition, "width", &width, "height", &height, NULL);
 
-        keyframe_renderer_begin_frame (renderer,
-                                   width * priv->resolution_factor,
-                                   height * priv->resolution_factor);
+        keyframe_renderer_begin_frame (renderer, priv->timestamp,
+                                       width * priv->resolution_factor,
+                                       height * priv->resolution_factor);
 
         GSList *layers = keyframe_composition_get_layers (priv->composition);
         for (GSList *l = layers; l != NULL; l = l->next)
@@ -287,6 +293,70 @@ keyframe_canvas_constructed (GObject *obj)
 }
 
 static void
+increment_time (KeyframeCanvas *self,
+                const char     *action_name,
+                GVariant       *param)
+
+{
+    KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (self);
+    g_print ("Incrementing Time %f\n", priv->timestamp++);
+    render_frame (self);
+}
+
+static void
+decrement_time (KeyframeCanvas *self,
+                const char     *action_name,
+                GVariant       *param)
+{
+    KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (self);
+    g_print ("Decrementing Time %f\n", priv->timestamp--);
+    render_frame (self);
+}
+
+static gboolean
+play_animation (KeyframeCanvas *self,
+                GdkFrameClock  *frame_clock,
+                gpointer        user_data)
+{
+    static gint64 last_frame_time = -1;
+
+    gint64 cur_frame_time = gdk_frame_clock_get_frame_time (frame_clock);
+    gint64 delta = last_frame_time == -1
+        ? 0
+        : cur_frame_time - last_frame_time;
+
+    KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (self);
+    priv->timestamp += ((float)delta/1000.0f);
+    last_frame_time = cur_frame_time;
+
+    // g_print ("Frame! %f\n", priv->timestamp);
+
+    if (priv->timestamp >= 1000.0f)
+    {
+        priv->timestamp = 0;
+        last_frame_time = -1;
+
+        render_frame (self);
+        gtk_widget_queue_draw (GTK_WIDGET (self));
+
+        return G_SOURCE_REMOVE;
+    }
+
+    render_frame (self);
+    gtk_widget_queue_draw (GTK_WIDGET (self));
+
+    return G_SOURCE_CONTINUE;
+}
+
+static void
+play (KeyframeCanvas *self,
+      const char     *action_name,
+      GVariant       *param)
+{
+    gtk_widget_add_tick_callback (self, play_animation, NULL, NULL);
+}
+
+static void
 keyframe_canvas_class_init (KeyframeCanvasClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
@@ -299,6 +369,14 @@ keyframe_canvas_class_init (KeyframeCanvasClass *klass)
     GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
 
     widget_class->snapshot = keyframe_canvas_snapshot;
+
+    gtk_widget_class_install_action (widget_class, "canvas.increment_time", NULL, increment_time);
+    gtk_widget_class_install_action (widget_class, "canvas.decrement_time", NULL, decrement_time);
+    gtk_widget_class_install_action (widget_class, "canvas.play", NULL, play);
+
+    gtk_widget_class_add_binding_action (widget_class, GDK_KEY_Right, GDK_CONTROL_MASK, "canvas.increment_time", NULL);
+    gtk_widget_class_add_binding_action (widget_class, GDK_KEY_Left, GDK_CONTROL_MASK, "canvas.decrement_time", NULL);
+    gtk_widget_class_add_binding_action (widget_class, GDK_KEY_space, GDK_CONTROL_MASK, "canvas.play", NULL);
 
     properties [PROP_COMPOSITION] =
         g_param_spec_object ("composition", "Composition", "Composition",
@@ -322,6 +400,9 @@ keyframe_canvas_init (KeyframeCanvas *self)
                                                 GTK_PHASE_BUBBLE);
     gtk_widget_add_controller (GTK_WIDGET (self), GTK_EVENT_CONTROLLER (priv->zoom_gesture));
 
+    gtk_widget_set_focusable (GTK_WIDGET (self), TRUE);
+    gtk_widget_set_focus_on_click (GTK_WIDGET (self), TRUE);
+
     // Set Canvas Properties
     // TODO: Only apply resolution factor to bitmap layers? (e.g. exclude text)
     priv->resolution_factor = 1; //0.25;
@@ -329,6 +410,7 @@ keyframe_canvas_init (KeyframeCanvas *self)
     priv->x = 0;
     priv->y = 0;
     priv->clip = false;
+    priv->timestamp = 0;
 
     // For debugging missing fonts
     // GtkWidget *dlg = gtk_font_chooser_dialog_new ("Fonts", NULL);
