@@ -5,5 +5,5 @@ subprojects/libsass
 subprojects/sassc
 
 # wrap-redirects
-subprojects/libass.wrap
+subprojects/libsass.wrap
 subprojects/sassc.wrap

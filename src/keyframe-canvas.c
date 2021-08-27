@@ -18,12 +18,6 @@ typedef struct
     float old_zoom;
     double start_x, start_y;
     double old_x, old_y;
-
-    // TODO: We don't want Canvas controlling the current time. That should either
-    // be a feature of the composition itself, or the composition manager. Maybe
-    // some kind of CompositionObserver class should be used for this?
-    //  -> VERY TEMPORARY
-    float timestamp;
 } KeyframeCanvasPrivate;
 
 #include <math.h>
@@ -242,9 +236,15 @@ static void render_frame (KeyframeCanvas *self)
 
     {
         int width, height;
-        g_object_get (priv->composition, "width", &width, "height", &height, NULL);
+        float cur_time;
 
-        keyframe_renderer_begin_frame (renderer, priv->timestamp,
+        g_object_get (priv->composition,
+                      "width", &width,
+                      "height", &height,
+                      "current-time", &cur_time,
+                      NULL);
+
+        keyframe_renderer_begin_frame (renderer, cur_time,
                                        width * priv->resolution_factor,
                                        height * priv->resolution_factor);
 
@@ -299,7 +299,10 @@ increment_time (KeyframeCanvas *self,
 
 {
     KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (self);
-    g_print ("Incrementing Time %f\n", priv->timestamp++);
+    float cur_time;
+    g_object_get (priv->composition, "current-time", &cur_time, NULL);
+    g_print ("Incrementing Time %f\n", cur_time++);
+    g_object_set (priv->composition, "current-time", cur_time, NULL);
     render_frame (self);
 }
 
@@ -309,7 +312,10 @@ decrement_time (KeyframeCanvas *self,
                 GVariant       *param)
 {
     KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (self);
-    g_print ("Decrementing Time %f\n", priv->timestamp--);
+    float cur_time;
+    g_object_get (priv->composition, "current-time", &cur_time, NULL);
+    g_print ("Decrementing Time %f\n", cur_time--);
+    g_object_set (priv->composition, "current-time", cur_time, NULL);
     render_frame (self);
 }
 
@@ -326,14 +332,18 @@ play_animation (KeyframeCanvas *self,
         : cur_frame_time - last_frame_time;
 
     KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (self);
-    priv->timestamp += ((float)delta/1000.0f);
+
+    float cur_time;
+    g_object_get (priv->composition, "current-time", &cur_time, NULL);
+    cur_time += ((float)delta/1000.0f);
+    g_object_set (priv->composition, "current-time", cur_time, NULL);
     last_frame_time = cur_frame_time;
 
     // g_print ("Frame! %f\n", priv->timestamp);
 
-    if (priv->timestamp >= 1000.0f)
+    if (cur_time >= 1000.0f)
     {
-        priv->timestamp = 0;
+        g_object_set (priv->composition, "current-time", 0.0f, NULL);
         last_frame_time = -1;
 
         render_frame (self);
@@ -410,7 +420,6 @@ keyframe_canvas_init (KeyframeCanvas *self)
     priv->x = 0;
     priv->y = 0;
     priv->clip = false;
-    priv->timestamp = 0;
 
     // For debugging missing fonts
     // GtkWidget *dlg = gtk_font_chooser_dialog_new ("Fonts", NULL);

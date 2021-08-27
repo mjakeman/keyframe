@@ -10,12 +10,14 @@ typedef struct
     // For dispose
     GtkWidget *sw;
 
+    GtkWidget *slider;
     GtkWidget *col_view;
     KeyframeCompositionManager *manager;
     KeyframeComposition *composition;
 
     ulong signal_id;
     ulong comp_update_id;
+    GBinding *timeline_binding;
 } KeyframeTimelinePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (KeyframeTimeline, keyframe_timeline, GTK_TYPE_WIDGET)
@@ -217,10 +219,14 @@ keyframe_timeline_update_composition (KeyframeTimeline *self)
         {
             g_signal_handler_disconnect (priv->composition, priv->comp_update_id);
             g_object_unref (priv->composition);
+            g_object_unref (priv->timeline_binding);
         }
+
+        GtkAdjustment *adjustment = gtk_range_get_adjustment (priv->slider);
 
         priv->composition = g_object_ref (new_comp);
         priv->comp_update_id = g_signal_connect (priv->composition, "changed", keyframe_timeline_composition_changed, self);
+        priv->timeline_binding = g_object_bind_property (priv->composition, "current-time", adjustment, "value", G_BINDING_BIDIRECTIONAL);
     }
 
     if (priv->composition == NULL)
@@ -417,10 +423,18 @@ keyframe_timeline_init (KeyframeTimeline *self)
     g_signal_connect (edit_layer_btn, "clicked", cb_edit_layer, self);
     gtk_box_append (GTK_BOX (toolbar), edit_layer_btn);
 
+    // Vertical Layout
+    GtkWidget *vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+    gtk_box_append (GTK_BOX (box), vbox);
+
+    // Slider
+    priv->slider = gtk_scale_new_with_range (GTK_ORIENTATION_HORIZONTAL, 0, 1000.0f, 0.1f);
+    gtk_box_append (GTK_BOX (vbox), priv->slider);
+
     // Timeline
     priv->sw = gtk_scrolled_window_new ();
     gtk_widget_set_hexpand (priv->sw, true);
-    gtk_box_append (box, priv->sw);
+    gtk_box_append (GTK_BOX (vbox), priv->sw);
 
     priv->col_view = GTK_COLUMN_VIEW (gtk_column_view_new (NULL));
     gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (priv->sw), GTK_WIDGET (priv->col_view));

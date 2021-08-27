@@ -7,6 +7,11 @@ typedef struct
 
     int width, height;
     float framerate;
+
+    // TODO: We likely don't want composition controlling the current
+    // time. That should either be a feature of composition manager or
+    // an auxiliary class e.g. some kind of CompositionObserver.
+    float current_time;
 } KeyframeCompositionPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (KeyframeComposition, keyframe_composition, G_TYPE_OBJECT)
@@ -17,6 +22,7 @@ enum {
     PROP_WIDTH,
     PROP_HEIGHT,
     PROP_FRAMERATE,
+    PROP_CURRENT_TIME,
     N_PROPS
 };
 
@@ -82,6 +88,9 @@ keyframe_composition_get_property (GObject    *object,
       case PROP_FRAMERATE:
           g_value_set_float (value, priv->framerate);
           break;
+      case PROP_CURRENT_TIME:
+          g_value_set_float(value, priv->current_time);
+          break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       }
@@ -97,7 +106,7 @@ keyframe_composition_set_property (GObject      *object,
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
 
     switch (prop_id)
-      {
+    {
       case PROP_TITLE:
           priv->title = g_value_dup_string (value);
           break;
@@ -110,9 +119,15 @@ keyframe_composition_set_property (GObject      *object,
       case PROP_FRAMERATE:
           priv->framerate = g_value_get_float (value);
           break;
+      case PROP_CURRENT_TIME:
+          priv->current_time = g_value_get_float(value);
+          break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      }
+    }
+
+    // Invalidate the composition
+    g_signal_emit (self, signals[CHANGED], 0);
 }
 
 void
@@ -157,6 +172,7 @@ keyframe_composition_class_init (KeyframeCompositionClass *klass)
     properties [PROP_WIDTH] = g_param_spec_int ("width", "Width", "Width", 0, G_MAXINT, 0, G_PARAM_READWRITE);
     properties [PROP_HEIGHT] = g_param_spec_int ("height", "Height", "Height", 0, G_MAXINT, 0, G_PARAM_READWRITE);
     properties [PROP_FRAMERATE] = g_param_spec_float ("framerate", "Framerate", "Framerate", 0, 1000, 0, G_PARAM_READWRITE);
+    properties [PROP_CURRENT_TIME] = g_param_spec_float ("current-time", "Current Time", "Current Time", 0, G_MAXFLOAT, 0, G_PARAM_READWRITE);
 
     g_object_class_install_properties (object_class, N_PROPS, properties);
 
