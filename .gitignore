@@ -1,4 +1,9 @@
+# subprojects
 subprojects/libadwaita
 subprojects/libpanel
 subprojects/libsass
 subprojects/sassc
+
+# wrap-redirects
+subprojects/libass.wrap
+subprojects/sassc.wrap

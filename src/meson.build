@@ -19,7 +19,7 @@ keyframe_sources = [
 ]
 
 keyframe_deps = [
-	dependency('gtk4', version : '>=4.3'),
+	dependency('gtk4', version : '>=4.4'),
 	dependency('libadwaita-1', fallback : ['libadwaita', 'libadwaita_dep']),
     dependency('libpanel', fallback : ['libpanel', 'libpanel_dep']),
     dependency('gstreamer-1.0'),
