@@ -18,7 +18,7 @@
 
 #include "keyframe-application.h"
 #include "keyframe-window.h"
-#include "keyframe-timeline.h"
+#include "timeline/keyframe-timeline.h"
 #include "keyframe-layer-list.h"
 #include "model/keyframe-layers.h"
 

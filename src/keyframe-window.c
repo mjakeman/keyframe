@@ -19,7 +19,7 @@
 #include "keyframe-config.h"
 #include "keyframe-window.h"
 #include "keyframe-canvas.h"
-#include "keyframe-timeline.h"
+#include "timeline/keyframe-timeline.h"
 #include "keyframe-layer-list.h"
 #include "keyframe-composition-manager.h"
 #include "model/keyframe-layers.h"

@@ -5,10 +5,12 @@
 #include "model/keyframe-composition.h"
 #include "model/keyframe-layers.h"
 
+#include "keyframe-timeline-menu.h"
+
 typedef struct
 {
     // For dispose
-    GtkWidget *sw;
+    // GtkWidget *sw;
 
     GtkWidget *slider;
     GtkWidget *col_view;
@@ -51,7 +53,7 @@ keyframe_timeline_finalize (GObject *object)
     KeyframeTimeline *self = (KeyframeTimeline *)object;
     KeyframeTimelinePrivate *priv = keyframe_timeline_get_instance_private (self);
 
-    gtk_widget_unparent (priv->sw);
+    // gtk_widget_unparent (priv->sw);
 
     G_OBJECT_CLASS (keyframe_timeline_parent_class)->finalize (object);
 }
@@ -200,6 +202,8 @@ keyframe_timeline_composition_changed (KeyframeComposition *composition,
     GtkTreeListModel *treemodel = gtk_tree_list_model_new (model, FALSE, TRUE, create_layers_tree, NULL, NULL);
     GtkSingleSelection *selection = gtk_single_selection_new (G_LIST_MODEL (treemodel));
 
+    // This currently gets regenerated every time we move the playhead
+    // We should differentiate between 'frame-change' and 'invalidate'
     gtk_column_view_set_model (GTK_COLUMN_VIEW (priv->col_view), GTK_SELECTION_MODEL (selection));
 }
 
@@ -240,82 +244,50 @@ keyframe_timeline_update_composition (KeyframeTimeline *self)
 }
 
 static void
-cb_new_text_layer (GtkButton *btn, KeyframeTimeline *self)
+new_layer_action (KeyframeTimeline *self,
+                  const char       *action_name,
+                  GVariant         *param)
 {
     KeyframeTimelinePrivate *priv = keyframe_timeline_get_instance_private (self);
 
     if (!priv->composition)
         return;
 
-    // TODO: This should really be an action
-    KeyframeLayer *layer = g_object_new (KEYFRAME_TYPE_LAYER_TEXT,
-                                         "name", "Untitled Layer",
-                                         "markup", "Hello World",
-                                         NULL);
-    keyframe_composition_push_layer (priv->composition, layer);
-}
+    KeyframeLayer *layer;
 
-static void
-cb_new_cool_layer (GtkButton *btn, KeyframeTimeline *self)
-{
-    KeyframeTimelinePrivate *priv = keyframe_timeline_get_instance_private (self);
+    GType typeid = g_variant_get_uint64 (param);
 
-    if (!priv->composition)
+    if (typeid == KEYFRAME_TYPE_LAYER_TEXT)
+    {
+        layer = g_object_new (KEYFRAME_TYPE_LAYER_TEXT,
+                              "name", "Untitled Layer",
+                              "markup", "Hello World",
+                              NULL);
+    }
+    else if (typeid == KEYFRAME_TYPE_LAYER_COOL)
+    {
+        layer = g_object_new (KEYFRAME_TYPE_LAYER_COOL,
+                              "name", "Untitled Layer",
+                              NULL);
+    }
+    else if (typeid == KEYFRAME_TYPE_LAYER_GEOMETRY)
+    {
+        int w, h;
+        g_object_get (priv->composition, "width", &w, "height", &h, NULL);
+
+        layer = g_object_new (KEYFRAME_TYPE_LAYER_GEOMETRY,
+                              "name", "Untitled Layer",
+                              "width", (float)w,
+                              "height", (float)h,
+                              NULL);
+    }
+    else
+    {
+        g_warning ("Cannot create layer of unrecognised typeid: %llu\n", typeid);
         return;
+    }
 
-    // TODO: This should really be an action
-    KeyframeLayer *layer = g_object_new (KEYFRAME_TYPE_LAYER_COOL,
-                                         "name", "Untitled Layer",
-                                         NULL);
     keyframe_composition_push_layer (priv->composition, layer);
-}
-
-static void
-cb_new_geometry_layer (GtkButton *btn, KeyframeTimeline *self)
-{
-    KeyframeTimelinePrivate *priv = keyframe_timeline_get_instance_private (self);
-
-    if (!priv->composition)
-        return;
-
-    int w, h;
-    g_object_get (priv->composition, "width", &w, "height", &h, NULL);
-
-    // TODO: This should really be an action
-    KeyframeLayer *layer = g_object_new (KEYFRAME_TYPE_LAYER_GEOMETRY,
-                                         "name", "Untitled Layer",
-                                         "width", (float)w,
-                                         "height", (float)h,
-                                         NULL);
-    keyframe_composition_push_layer (priv->composition, layer);
-}
-
-static void
-cb_new_layer_popover (GtkMenuButton *new_layer_btn, KeyframeTimeline *self)
-{
-    // New Layer Popover
-    GtkWidget *popover_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-
-    /*GtkWidget *popover_create_btn = gtk_button_new_with_label ("Create");
-    gtk_widget_add_css_class (popover_create_btn, "suggested-action");
-    gtk_box_append (GTK_BOX (popover_box), popover_create_btn);*/
-
-    GtkWidget *layer_btn = gtk_button_new_with_label ("Text");
-    g_signal_connect (layer_btn, "clicked", cb_new_text_layer, self);
-    gtk_box_append (GTK_BOX (popover_box), layer_btn);
-
-    layer_btn = gtk_button_new_with_label ("Geometry");
-    g_signal_connect (layer_btn, "clicked", cb_new_geometry_layer, self);
-    gtk_box_append (GTK_BOX (popover_box), layer_btn);
-
-    layer_btn = gtk_button_new_with_label ("Cool");
-    g_signal_connect (layer_btn, "clicked", cb_new_cool_layer, self);
-    gtk_box_append (GTK_BOX (popover_box), layer_btn);
-
-    GtkWidget *popover = gtk_popover_new ();
-    gtk_popover_set_child (popover, popover_box);
-
-    gtk_menu_button_set_popover (new_layer_btn, popover);
 }
 
 static void
@@ -334,12 +306,6 @@ delete_layer_action (KeyframeTimeline *self,
     // self->composition ... delete?
     // layer should probably have a reference to composition
     //   -> e.g. composition owns layers and is responsible for freeing them
-}
-
-static void
-cb_delete_layer (GtkButton *btn, KeyframeTimeline *self)
-{
-    gtk_widget_activate_action (self, "layer.delete", NULL);
 }
 
 static void
@@ -363,12 +329,6 @@ edit_layer_action (KeyframeTimeline *self,
 }
 
 static void
-cb_edit_layer (GtkButton *btn, KeyframeTimeline *self)
-{
-    gtk_widget_activate_action (GTK_WIDGET (self), "layer.edit", NULL);
-}
-
-static void
 keyframe_timeline_class_init (KeyframeTimelineClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
@@ -379,6 +339,7 @@ keyframe_timeline_class_init (KeyframeTimelineClass *klass)
 
     GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
 
+    gtk_widget_class_install_action (widget_class, "layer.new", NULL, new_layer_action);
     gtk_widget_class_install_action (widget_class, "layer.edit", NULL, edit_layer_action);
     gtk_widget_class_install_action (widget_class, "layer.delete", NULL, delete_layer_action);
 
@@ -400,45 +361,42 @@ keyframe_timeline_init (KeyframeTimeline *self)
     gtk_widget_set_parent (box, GTK_WIDGET (self));
 
     // Toolbar
-    GtkWidget *toolbar = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-    gtk_widget_add_css_class (toolbar, "toolbar");
-    gtk_box_append (GTK_BOX (box), toolbar);
-
-    GtkWidget *add_layer_btn = gtk_menu_button_new ();
-    gtk_menu_button_set_icon_name (GTK_MENU_BUTTON (add_layer_btn), "document-new-symbolic");
-    gtk_menu_button_set_direction (GTK_MENU_BUTTON (add_layer_btn), GTK_ARROW_UP);
-    gtk_menu_button_set_create_popup_func (GTK_MENU_BUTTON (add_layer_btn),
-                                           cb_new_layer_popover,
-                                           g_object_ref (self),
-                                           g_object_unref);
-    gtk_box_append (GTK_BOX (toolbar), add_layer_btn);
-
-    GtkWidget *delete_layer_btn = gtk_button_new ();
-    gtk_button_set_child (GTK_BUTTON (delete_layer_btn), gtk_image_new_from_icon_name ("user-trash-symbolic"));
-    g_signal_connect (delete_layer_btn, "clicked", cb_delete_layer, self);
-    gtk_box_append (GTK_BOX (toolbar), delete_layer_btn);
-
-    GtkWidget *edit_layer_btn = gtk_button_new ();
-    gtk_button_set_child (GTK_BUTTON (edit_layer_btn), gtk_image_new_from_icon_name ("document-edit-symbolic"));
-    g_signal_connect (edit_layer_btn, "clicked", cb_edit_layer, self);
-    gtk_box_append (GTK_BOX (toolbar), edit_layer_btn);
+    GtkWidget *menu = keyframe_timeline_menu_new ();
+    gtk_box_append (GTK_BOX (box), menu);
 
     // Vertical Layout
     GtkWidget *vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+    gtk_widget_set_hexpand (vbox, TRUE);
     gtk_box_append (GTK_BOX (box), vbox);
 
-    // Slider
+    GtkWidget *header_paned = gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
+    GtkWidget *contents_paned = gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
+    g_object_bind_property (header_paned, "position", contents_paned, "position", G_BINDING_BIDIRECTIONAL);
+    gtk_paned_set_position (GTK_PANED (header_paned), 200);
+
+    GtkWidget *contents_scroll_area = gtk_scrolled_window_new ();
+    gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (contents_scroll_area), contents_paned);
+    gtk_widget_set_vexpand (contents_scroll_area, TRUE);
+
+    gtk_box_append (GTK_BOX (vbox), header_paned);
+    gtk_box_append (GTK_BOX (vbox), contents_scroll_area);
+
+    // HEADER
+    GtkWidget *header_label = gtk_label_new ("Layers");
+    gtk_paned_set_start_child (GTK_PANED (header_paned), header_label);
+
     priv->slider = gtk_scale_new_with_range (GTK_ORIENTATION_HORIZONTAL, 0, 1000.0f, 0.1f);
-    gtk_box_append (GTK_BOX (vbox), priv->slider);
+    gtk_paned_set_end_child (GTK_PANED (header_paned), priv->slider);
+
+    // CONTENTS
+    // Split between layer list and clip editor
 
     // Timeline
-    priv->sw = gtk_scrolled_window_new ();
-    gtk_widget_set_hexpand (priv->sw, true);
-    gtk_box_append (GTK_BOX (vbox), priv->sw);
-
     priv->col_view = GTK_COLUMN_VIEW (gtk_column_view_new (NULL));
-    gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (priv->sw), GTK_WIDGET (priv->col_view));
-    gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (priv->sw), 200);
+    // gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (contents_scroll_area), GTK_WIDGET (priv->col_view));
+    gtk_paned_set_start_child (GTK_PANED (contents_paned), priv->col_view);
+    gtk_paned_set_end_child (GTK_PANED (contents_paned), gtk_text_view_new ());
+    // gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (contents_scroll_area), 200);
 
     gtk_column_view_set_reorderable (priv->col_view, false);
     gtk_column_view_set_show_column_separators (priv->col_view, true);
@@ -455,13 +413,9 @@ keyframe_timeline_init (KeyframeTimeline *self)
     GtkColumnViewColumn* col1 = gtk_column_view_column_new("Layer Name", name_factory);
     gtk_column_view_column_set_resizable (col1, true);
     gtk_column_view_append_column (priv->col_view, col1);
+    gtk_column_view_column_set_expand (col1, true);
 
     GtkColumnViewColumn* col2 = gtk_column_view_column_new("Type", type_factory);
     gtk_column_view_column_set_resizable (col2, true);
     gtk_column_view_append_column (priv->col_view, col2);
-
-    GtkColumnViewColumn* col3 = gtk_column_view_column_new("Graph", name_factory);
-    gtk_column_view_column_set_resizable (col3, true);
-    gtk_column_view_append_column (priv->col_view, col3);
-    gtk_column_view_column_set_expand (col3, true);
 }
