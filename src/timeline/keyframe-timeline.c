@@ -171,7 +171,7 @@ get_current_layer (KeyframeTimeline *self)
     if (!priv->composition)
         return NULL;
 
-    GtkSelectionModel *selection = gtk_column_view_get_model (priv->col_view);
+    GtkSelectionModel *selection = keyframe_timeline_column_view_get_model (priv->col_view);
     GtkTreeListRow *tree_row = GTK_TREE_LIST_ROW (gtk_single_selection_get_selected_item (GTK_SINGLE_SELECTION (selection)));
     KeyframeLayer *layer = KEYFRAME_LAYER (gtk_tree_list_row_get_item (tree_row));
 

@@ -1,8 +1,9 @@
 #include "keyframe-timeline-column-view.h"
 
+#include "../model/keyframe-layers.h"
+
 typedef struct
 {
-    GtkSelectionModel *model;
     GtkListView *list_view;
 } KeyframeTimelineColumnViewPrivate;
 
@@ -37,6 +38,17 @@ keyframe_timeline_column_view_finalize (GObject *object)
     KeyframeTimelineColumnViewPrivate *priv = keyframe_timeline_column_view_get_instance_private (self);
 
     G_OBJECT_CLASS (keyframe_timeline_column_view_parent_class)->finalize (object);
+}
+
+static void
+keyframe_timeline_column_view_dispose (GObject *object)
+{
+    KeyframeTimelineColumnView *self = (KeyframeTimelineColumnView *)object;
+    KeyframeTimelineColumnViewPrivate *priv = keyframe_timeline_column_view_get_instance_private (self);
+
+    g_clear_pointer (&priv->list_view, gtk_widget_unparent);
+
+    G_OBJECT_CLASS (keyframe_timeline_column_view_parent_class)->dispose (object);
 }
 
 static void
@@ -80,6 +92,7 @@ keyframe_timeline_column_view_class_init (KeyframeTimelineColumnViewClass *klass
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
+    object_class->dispose = keyframe_timeline_column_view_dispose;
     object_class->finalize = keyframe_timeline_column_view_finalize;
     object_class->get_property = keyframe_timeline_column_view_get_property;
     object_class->set_property = keyframe_timeline_column_view_set_property;
@@ -91,7 +104,8 @@ keyframe_timeline_column_view_class_init (KeyframeTimelineColumnViewClass *klass
 
 static void
 setup_listitem_cb (GtkListItemFactory *factory,
-                   GtkListItem        *list_item)
+                   GtkListItem        *list_item,
+                   gpointer            user_data)
 {
     GtkWidget *label = gtk_label_new ("");
     gtk_label_set_xalign (GTK_LABEL (label), 0);
@@ -101,20 +115,20 @@ setup_listitem_cb (GtkListItemFactory *factory,
 static void
 bind_listitem_cb (GtkListItemFactory *factory,
                   GtkListItem        *list_item,
-                  const char         *prop)
+                  gpointer            user_data)
 {
     GtkWidget *label;
     label = gtk_list_item_get_child (list_item);
 
-    /*KeyframeLayer *obj;
+    KeyframeLayer *obj;
     obj = gtk_tree_list_row_get_item (gtk_list_item_get_item (list_item));
 
     char *layer_prop;
     g_object_get (obj,
-                  prop, &layer_prop,
-                  NULL);*/
+                  "name", &layer_prop,
+                  NULL);
 
-    gtk_label_set_label (GTK_LABEL (label), "Boo!");
+    gtk_label_set_label (GTK_LABEL (label), layer_prop);
 }
 
 void
@@ -124,9 +138,7 @@ keyframe_timeline_column_view_set_model (KeyframeTimelineColumnView *self,
     g_return_if_fail (GTK_IS_SELECTION_MODEL (model));
 
     KeyframeTimelineColumnViewPrivate *priv = keyframe_timeline_column_view_get_instance_private (self);
-    priv->model = model;
-
-    gtk_list_view_set_model (priv->list_view, priv->model);
+    gtk_list_view_set_model (priv->list_view, model);
 
     g_object_notify_by_pspec (G_OBJECT (self), properties [PROP_MODEL]);
 }
@@ -135,7 +147,7 @@ GtkSelectionModel *
 keyframe_timeline_column_view_get_model (KeyframeTimelineColumnView *self)
 {
     KeyframeTimelineColumnViewPrivate *priv = keyframe_timeline_column_view_get_instance_private (self);
-    return priv->model;
+    return gtk_list_view_get_model (priv->list_view);
 }
 
 static void
@@ -148,9 +160,17 @@ keyframe_timeline_column_view_init (KeyframeTimelineColumnView *self)
     g_signal_connect (factory, "bind", bind_listitem_cb, self);
 
     GtkWidget *list_view = gtk_list_view_new (NULL, factory);
+    gtk_list_view_set_show_separators (list_view, TRUE);
+    gtk_widget_set_vexpand (list_view, TRUE);
+    gtk_widget_set_hexpand (list_view, TRUE);
     gtk_widget_set_parent (list_view, GTK_WIDGET (self));
     gtk_widget_set_layout_manager (GTK_WIDGET (self), gtk_bin_layout_new ());
     priv->list_view = list_view;
+
+    // TODO: Accessibility Support
+    // Since we're using out own columnview-like implementation, accessibility
+    // support needs to be added manually. Figure out what level of
+    // accessibility is practical for an application of this type.
 
     // g_object_bind_property (self, "model", list_view, "model", G_BINDING_DEFAULT);
 }

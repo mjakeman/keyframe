@@ -122,6 +122,7 @@ keyframe_application_show_about (GSimpleAction *action,
                          "license-type", GTK_LICENSE_GPL_3_0,
                          "website", "https://github.com/mjakeman/keyframe",
                          "comments", "A motion graphics editor for GNOME.",
+                         "logo-icon-name", "logo",
                          NULL);
 }
 
