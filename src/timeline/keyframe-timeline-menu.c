@@ -4,7 +4,7 @@
 
 typedef struct
 {
-
+    int _padding;
 } KeyframeTimelineMenuPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (KeyframeTimelineMenu, keyframe_timeline_menu, GTK_TYPE_WIDGET)

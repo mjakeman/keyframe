@@ -6,6 +6,7 @@
 #include "model/keyframe-layers.h"
 
 #include "keyframe-timeline-menu.h"
+#include "keyframe-timeline-column-view.h"
 
 typedef struct
 {
@@ -204,7 +205,7 @@ keyframe_timeline_composition_changed (KeyframeComposition *composition,
 
     // This currently gets regenerated every time we move the playhead
     // We should differentiate between 'frame-change' and 'invalidate'
-    gtk_column_view_set_model (GTK_COLUMN_VIEW (priv->col_view), GTK_SELECTION_MODEL (selection));
+    keyframe_timeline_column_view_set_model (priv->col_view, GTK_SELECTION_MODEL (selection));
 }
 
 static void
@@ -364,7 +365,13 @@ keyframe_timeline_init (KeyframeTimeline *self)
     GtkWidget *menu = keyframe_timeline_menu_new ();
     gtk_box_append (GTK_BOX (box), menu);
 
-    // Vertical Layout
+    GtkWidget *colview = keyframe_timeline_column_view_new ();
+    gtk_widget_set_vexpand (colview, TRUE);
+    gtk_widget_set_hexpand (colview, TRUE);
+    gtk_box_append (GTK_BOX (box), colview);
+    priv->col_view = colview;
+
+    /*// Vertical Layout
     GtkWidget *vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
     gtk_widget_set_hexpand (vbox, TRUE);
     gtk_box_append (GTK_BOX (box), vbox);
@@ -417,5 +424,5 @@ keyframe_timeline_init (KeyframeTimeline *self)
 
     GtkColumnViewColumn* col2 = gtk_column_view_column_new("Type", type_factory);
     gtk_column_view_column_set_resizable (col2, true);
-    gtk_column_view_append_column (priv->col_view, col2);
+    gtk_column_view_append_column (priv->col_view, col2);*/
 }

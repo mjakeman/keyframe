@@ -10,6 +10,7 @@ keyframe_sources = [
 	'keyframe-layer-properties-dialog.c',
 	'timeline/keyframe-timeline.c',
 	'timeline/keyframe-timeline-menu.c',
+	'timeline/keyframe-timeline-column-view.c',
 	'model/keyframe-layer.c',
 	'model/keyframe-layer-geometry.c',
 	'model/keyframe-layer-text.c',
