@@ -1,4 +1,6 @@
 # Keyframe
+![Keyframe Motion Graphics Editor (Logo)](data/logo-text.svg)
+
 A motion graphics editor for GNOME.
 
 Keyframe has a particular emphasis on text (video titles).
