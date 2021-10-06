@@ -3,7 +3,7 @@
 typedef struct
 {
     char *title;
-    GSList *layers;
+    GList *layers;
 
     int width, height;
     float framerate;
@@ -14,7 +14,12 @@ typedef struct
     float current_time;
 } KeyframeCompositionPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE (KeyframeComposition, keyframe_composition, G_TYPE_OBJECT)
+static void keyframe_composition_list_model_init (GListModelInterface *iface);
+
+G_DEFINE_TYPE_WITH_CODE (KeyframeComposition, keyframe_composition, G_TYPE_OBJECT,
+                         G_ADD_PRIVATE (KeyframeComposition)
+                         G_IMPLEMENT_INTERFACE (G_TYPE_LIST_MODEL,
+                                                keyframe_composition_list_model_init))
 
 enum {
     PROP_0,
@@ -60,7 +65,7 @@ keyframe_composition_finalize (GObject *object)
     KeyframeComposition *self = (KeyframeComposition *)object;
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
 
-    g_slist_free_full (g_steal_pointer (&priv->layers), g_object_unref);
+    g_list_free_full (g_steal_pointer (&priv->layers), g_object_unref);
 
     G_OBJECT_CLASS (keyframe_composition_parent_class)->finalize (object);
 }
@@ -134,7 +139,7 @@ void
 keyframe_composition_push_layer (KeyframeComposition *self, KeyframeLayer *layer)
 {
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
-    priv->layers = g_slist_append (priv->layers, layer); // TODO: Prepend?
+    priv->layers = g_list_append (priv->layers, layer); // TODO: Prepend?
     g_signal_emit (self, signals[CHANGED], 0);
 }
 
@@ -142,11 +147,11 @@ void
 keyframe_composition_delete_layer (KeyframeComposition *self, KeyframeLayer *layer)
 {
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
-    priv->layers = g_slist_remove (priv->layers, layer);
+    priv->layers = g_list_remove (priv->layers, layer);
     g_signal_emit (self, signals[CHANGED], 0);
 }
 
-GSList *
+GList *
 keyframe_composition_get_layers (KeyframeComposition *self)
 {
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
@@ -157,6 +162,57 @@ void
 keyframe_composition_invalidate (KeyframeComposition *self)
 {
     g_signal_emit (self, signals[CHANGED], 0);
+}
+
+static gpointer
+list_model_get_item (GListModel* list, guint position)
+{
+    KeyframeComposition *self = KEYFRAME_COMPOSITION (list);
+    KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
+
+    // TODO: We should store the beginning and end items
+    // Investigate g_list_nth_prev -> Doesn't seem to be working
+    /*guint length = g_list_length (priv->layers);
+    guint index = (length - 1) - position;
+    g_assert (index >= 0 && index < length);
+
+    return g_list_nth_data (priv->layers, index);*/
+
+    guint length = g_list_length (priv->layers);
+    if (position > (length-1))
+        return NULL;
+
+    KeyframeLayer *layer = g_list_nth_data (priv->layers, position);
+    g_print ("%d of %d: %s\n", position+1, length, g_type_name_from_instance (layer));
+    g_assert (KEYFRAME_IS_LAYER (layer));
+    return g_object_ref (layer);
+}
+
+static GType
+list_model_get_item_type (GListModel*)
+{
+    g_type_ensure (KEYFRAME_TYPE_LAYER);
+    g_type_ensure (KEYFRAME_TYPE_LAYER_COOL);
+    g_type_ensure (KEYFRAME_TYPE_LAYER_GEOMETRY);
+    g_type_ensure (KEYFRAME_TYPE_LAYER_TEXT);
+    return keyframe_layer_get_type ();
+}
+
+static guint
+list_model_get_n_items (GListModel* list)
+{
+    KeyframeComposition *self = KEYFRAME_COMPOSITION (list);
+    KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
+
+    return g_list_length (priv->layers);
+}
+
+static void
+keyframe_composition_list_model_init (GListModelInterface *iface)
+{
+    iface->get_n_items = list_model_get_n_items;
+    iface->get_item = list_model_get_item;
+    iface->get_item_type = list_model_get_item_type;
 }
 
 static void

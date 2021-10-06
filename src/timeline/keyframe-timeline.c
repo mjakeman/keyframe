@@ -218,7 +218,9 @@ keyframe_timeline_composition_changed (KeyframeComposition *composition,
     g_assert (composition == priv->composition);
 
     // Update List model
-    GListModel *model = create_layers_model_from_composition (priv->composition);
+    /*GListModel *model = create_layers_model_from_composition (priv->composition);*/
+
+    GListModel *model = G_LIST_MODEL (composition);
 
     GtkTreeListModel *treemodel = gtk_tree_list_model_new (model, FALSE, TRUE, create_layers_tree, NULL, NULL);
     GtkSingleSelection *selection = gtk_single_selection_new (G_LIST_MODEL (treemodel));

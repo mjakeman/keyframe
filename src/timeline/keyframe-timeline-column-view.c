@@ -121,6 +121,8 @@ bind_listitem_cb (GtkListItemFactory *factory,
                   GtkListItem        *list_item,
                   gpointer            user_data)
 {
+
+
     GtkWidget *label;
     label = gtk_tree_expander_get_child (gtk_list_item_get_child (list_item));
 

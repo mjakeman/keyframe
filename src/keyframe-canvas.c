@@ -248,8 +248,8 @@ static void render_frame (KeyframeCanvas *self)
                                        width * priv->resolution_factor,
                                        height * priv->resolution_factor);
 
-        GSList *layers = keyframe_composition_get_layers (priv->composition);
-        for (GSList *l = layers; l != NULL; l = l->next)
+        GList *layers = keyframe_composition_get_layers (priv->composition);
+        for (GList *l = layers; l != NULL; l = l->next)
         {
             KeyframeLayer *layer = l->data;
             g_assert (KEYFRAME_IS_LAYER (layer));

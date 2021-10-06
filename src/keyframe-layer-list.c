@@ -128,8 +128,8 @@ create_layers_model_from_composition (KeyframeComposition *composition)
 
     GListModel *model = g_list_store_new (KEYFRAME_TYPE_LAYER);
 
-    GSList *layers = keyframe_composition_get_layers (composition);
-    for (GSList *l = layers; l != NULL; l = l->next)
+    GList *layers = keyframe_composition_get_layers (composition);
+    for (GList *l = layers; l != NULL; l = l->next)
     {
         KeyframeLayer *layer = l->data;
         g_assert (KEYFRAME_IS_LAYER (layer));
