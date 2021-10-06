@@ -7,6 +7,7 @@
 
 #include "keyframe-timeline-menu.h"
 #include "keyframe-timeline-column-view.h"
+#include "keyframe-timeline-property.h"
 
 typedef struct
 {
@@ -132,56 +133,27 @@ create_layers_model_from_composition (KeyframeComposition *composition)
 static GListModel *
 create_layers_tree (gpointer layer_ptr, gpointer unused)
 {
-    // This is all very broken unfortunately
-    return NULL;
-
     // For now, only support a depth of one level (i.e. must
-    // be immediate child of a layer) - Doesn't work :/
+    // be immediate child of a layer)
     if (!KEYFRAME_IS_LAYER (layer_ptr))
         return NULL;
 
     KeyframeLayer *layer = KEYFRAME_LAYER (layer_ptr);
 
-    int n_props;
+    guint n_props;
     GParamSpec **params = g_object_class_list_properties (G_OBJECT_GET_CLASS (layer), &n_props);
 
-    GListModel *model = g_list_store_new (KEYFRAME_TYPE_LAYER);
+    GListModel *model = G_LIST_MODEL (g_list_store_new (KEYFRAME_TYPE_TIMELINE_PROPERTY));
 
-    for (int i = 0; i < n_props; i++)
+    for (guint i = 0; i < n_props; i++)
     {
-        g_list_store_append (model, layer);
+        KeyframeTimelineProperty *prop = keyframe_timeline_property_new (params[i]);
+        g_list_store_append (G_LIST_STORE (model), prop);
     }
 
     // TODO: Add support for sublayers at some point
     return model;
 }
-
-/*static void
-setup_listitem_cb (GtkListItemFactory *factory,
-                   GtkListItem        *list_item)
-{
-    GtkWidget *label = gtk_label_new ("");
-    gtk_label_set_xalign (GTK_LABEL (label), 0);
-    gtk_list_item_set_child (list_item, label);
-}
-
-static void
-bind_listitem_cb (GtkListItemFactory *factory,
-                  GtkListItem        *list_item,
-                  const char         *prop)
-{
-    GtkWidget *label;
-    KeyframeLayer *obj;
-    label = gtk_list_item_get_child (list_item);
-    obj = gtk_tree_list_row_get_item (gtk_list_item_get_item (list_item));
-
-    char *layer_prop;
-    g_object_get (obj,
-                  prop, &layer_prop,
-                  NULL);
-
-    gtk_label_set_label (GTK_LABEL (label), layer_prop);
-}*/
 
 static KeyframeLayer *
 get_current_layer (KeyframeTimeline *self)
@@ -222,7 +194,7 @@ keyframe_timeline_composition_changed (KeyframeComposition *composition,
 
     GListModel *model = G_LIST_MODEL (composition);
 
-    GtkTreeListModel *treemodel = gtk_tree_list_model_new (model, FALSE, TRUE, create_layers_tree, NULL, NULL);
+    GtkTreeListModel *treemodel = gtk_tree_list_model_new (model, FALSE, FALSE, create_layers_tree, NULL, NULL);
     GtkSingleSelection *selection = gtk_single_selection_new (G_LIST_MODEL (treemodel));
 
     // This currently gets regenerated every time we move the playhead
@@ -387,81 +359,10 @@ keyframe_timeline_init (KeyframeTimeline *self)
     GtkWidget *menu = keyframe_timeline_menu_new ();
     gtk_box_append (GTK_BOX (box), menu);
 
-    GtkWidget *paned = gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
-    gtk_widget_set_hexpand (paned, TRUE);
-    gtk_box_append (GTK_BOX (box), paned);
-
-    // TODO: Custom scrolling, don't bother with scrolled window :/
-    GtkWidget *tv1 = gtk_text_view_new ();
-    GtkWidget *tv2 = gtk_text_view_new ();
-
-    gtk_paned_set_start_child (GTK_PANED (paned), tv1);
-    gtk_paned_set_end_child (GTK_PANED (paned), tv2);
-
-
-
-    // NOTE: To implement the horizontal scrolling for the channel view, we
-    // can wrap the widget in a scrolled window which exposes the vertical
-    // adjustment only through GtkScrollable (but handles the horizontal).
-
+    // Data Table + Time Track
     GtkWidget *colview = keyframe_timeline_column_view_new ();
     gtk_widget_set_vexpand (colview, TRUE);
     gtk_widget_set_hexpand (colview, TRUE);
     gtk_box_append (GTK_BOX (box), colview);
     priv->col_view = colview;
-
-    /*// Vertical Layout
-    GtkWidget *vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-    gtk_widget_set_hexpand (vbox, TRUE);
-    gtk_box_append (GTK_BOX (box), vbox);
-
-    GtkWidget *header_paned = gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
-    GtkWidget *contents_paned = gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
-    g_object_bind_property (header_paned, "position", contents_paned, "position", G_BINDING_BIDIRECTIONAL);
-    gtk_paned_set_position (GTK_PANED (header_paned), 200);
-
-    GtkWidget *contents_scroll_area = gtk_scrolled_window_new ();
-    gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (contents_scroll_area), contents_paned);
-    gtk_widget_set_vexpand (contents_scroll_area, TRUE);
-
-    gtk_box_append (GTK_BOX (vbox), header_paned);
-    gtk_box_append (GTK_BOX (vbox), contents_scroll_area);
-
-    // HEADER
-    GtkWidget *header_label = gtk_label_new ("Layers");
-    gtk_paned_set_start_child (GTK_PANED (header_paned), header_label);
-
-    priv->slider = gtk_scale_new_with_range (GTK_ORIENTATION_HORIZONTAL, 0, 1000.0f, 0.1f);
-    gtk_paned_set_end_child (GTK_PANED (header_paned), priv->slider);
-
-    // CONTENTS
-    // Split between layer list and clip editor
-
-    // Timeline
-    priv->col_view = GTK_COLUMN_VIEW (gtk_column_view_new (NULL));
-    // gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (contents_scroll_area), GTK_WIDGET (priv->col_view));
-    gtk_paned_set_start_child (GTK_PANED (contents_paned), priv->col_view);
-    gtk_paned_set_end_child (GTK_PANED (contents_paned), gtk_text_view_new ());
-    // gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (contents_scroll_area), 200);
-
-    gtk_column_view_set_reorderable (priv->col_view, false);
-    gtk_column_view_set_show_column_separators (priv->col_view, true);
-    g_signal_connect (priv->col_view, "activate", layer_activate_cb, self);
-
-    GtkListItemFactory *name_factory = gtk_signal_list_item_factory_new ();
-    g_signal_connect (name_factory, "setup", setup_listitem_cb, NULL);
-    g_signal_connect (name_factory, "bind", bind_listitem_cb, "name");
-
-    GtkListItemFactory *type_factory = gtk_signal_list_item_factory_new ();
-    g_signal_connect (type_factory, "setup", setup_listitem_cb, NULL);
-    g_signal_connect (type_factory, "bind", bind_listitem_cb, "type");
-
-    GtkColumnViewColumn* col1 = gtk_column_view_column_new("Layer Name", name_factory);
-    gtk_column_view_column_set_resizable (col1, true);
-    gtk_column_view_append_column (priv->col_view, col1);
-    gtk_column_view_column_set_expand (col1, true);
-
-    GtkColumnViewColumn* col2 = gtk_column_view_column_new("Type", type_factory);
-    gtk_column_view_column_set_resizable (col2, true);
-    gtk_column_view_append_column (priv->col_view, col2);*/
 }

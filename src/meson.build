@@ -11,6 +11,7 @@ keyframe_sources = [
 	'timeline/keyframe-timeline.c',
 	'timeline/keyframe-timeline-menu.c',
 	'timeline/keyframe-timeline-column-view.c',
+	'timeline/keyframe-timeline-property.c',
 	'model/keyframe-layer.c',
 	'model/keyframe-layer-geometry.c',
 	'model/keyframe-layer-text.c',

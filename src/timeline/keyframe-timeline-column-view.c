@@ -1,6 +1,7 @@
 #include "keyframe-timeline-column-view.h"
 
 #include "../model/keyframe-layers.h"
+#include "keyframe-timeline-property.h"
 
 typedef struct
 {
@@ -112,7 +113,6 @@ setup_listitem_cb (GtkListItemFactory *factory,
 
     GtkWidget *expander = gtk_tree_expander_new ();
     gtk_list_item_set_child (list_item, expander);
-    gtk_tree_expander_set_list_row (expander, gtk_list_item_get_item (list_item));
     gtk_tree_expander_set_child (expander, label);
 }
 
@@ -121,20 +121,32 @@ bind_listitem_cb (GtkListItemFactory *factory,
                   GtkListItem        *list_item,
                   gpointer            user_data)
 {
+    GtkTreeExpander *expander = GTK_TREE_EXPANDER (gtk_list_item_get_child (list_item));
+    GtkTreeListRow *row = GTK_TREE_LIST_ROW (gtk_list_item_get_item (list_item));
+    gtk_tree_expander_set_list_row (expander, row);
 
+    GtkWidget *label = gtk_tree_expander_get_child (expander);
+    GObject *bind_obj = gtk_tree_list_row_get_item (row);
 
-    GtkWidget *label;
-    label = gtk_tree_expander_get_child (gtk_list_item_get_child (list_item));
+    if (KEYFRAME_IS_LAYER (bind_obj))
+    {
+        char *layer_prop;
+        g_object_get (bind_obj,
+                      "name", &layer_prop,
+                      NULL);
 
-    KeyframeLayer *obj;
-    obj = gtk_tree_list_row_get_item (gtk_list_item_get_item (list_item));
+        gtk_label_set_label (GTK_LABEL (label), layer_prop);
+    }
+    else if (KEYFRAME_IS_TIMELINE_PROPERTY (bind_obj))
+    {
+        GParamSpec *param;
+        g_object_get (bind_obj,
+                      "param-spec", &param,
+                      NULL);
 
-    char *layer_prop;
-    g_object_get (obj,
-                  "name", &layer_prop,
-                  NULL);
-
-    gtk_label_set_label (GTK_LABEL (label), layer_prop);
+        gtk_label_set_label (GTK_LABEL (label), g_param_spec_get_nick (param));
+        gtk_widget_set_tooltip_text (label, g_param_spec_get_blurb (param));
+    }
 }
 
 void
@@ -173,7 +185,7 @@ keyframe_timeline_column_view_init (KeyframeTimelineColumnView *self)
     gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroll_area), vbox);
 
     GtkWidget *list_view = gtk_list_view_new (NULL, factory);
-    gtk_list_view_set_show_separators (list_view, TRUE);
+    // gtk_list_view_set_show_separators (list_view, TRUE);
     gtk_widget_set_vexpand (list_view, TRUE);
     gtk_widget_set_hexpand (list_view, TRUE);
     gtk_box_append (GTK_BOX (vbox), list_view);

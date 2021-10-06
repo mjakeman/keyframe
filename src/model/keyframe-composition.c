@@ -151,6 +151,14 @@ keyframe_composition_delete_layer (KeyframeComposition *self, KeyframeLayer *lay
     g_signal_emit (self, signals[CHANGED], 0);
 }
 
+/**
+ * keyframe_composition_get_layers:
+ *
+ * Retrieve all the layers in the composition. The caller must *not* modify
+ * or free the list, and doing so is an error.
+ *
+ * Returns: The layers in this composition
+ */
 GList *
 keyframe_composition_get_layers (KeyframeComposition *self)
 {
@@ -171,21 +179,22 @@ list_model_get_item (GListModel* list, guint position)
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
 
     // TODO: We should store the beginning and end items
-    // Investigate g_list_nth_prev -> Doesn't seem to be working
-    /*guint length = g_list_length (priv->layers);
+    guint length = g_list_length (priv->layers);
     guint index = (length - 1) - position;
     g_assert (index >= 0 && index < length);
 
-    return g_list_nth_data (priv->layers, index);*/
+    if (index >= 0 && index < length)
+    {
+        KeyframeLayer *layer = g_list_nth_data (priv->layers, index);
+        g_print ("%d of %d: %s\n", position+1, length, g_type_name_from_instance ((GTypeInstance *)layer));
+        g_assert (KEYFRAME_IS_LAYER (layer));
 
-    guint length = g_list_length (priv->layers);
-    if (position > (length-1))
-        return NULL;
+        // Make sure to ref the object!
+        return g_object_ref (layer);
+    }
 
-    KeyframeLayer *layer = g_list_nth_data (priv->layers, position);
-    g_print ("%d of %d: %s\n", position+1, length, g_type_name_from_instance (layer));
-    g_assert (KEYFRAME_IS_LAYER (layer));
-    return g_object_ref (layer);
+    // Invalid, return NULL
+    return NULL;
 }
 
 static GType
