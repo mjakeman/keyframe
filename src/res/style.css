@@ -1,0 +1,21 @@
+.timeline {
+    background-color: #222;
+}
+
+.timeline row {
+    background-color: transparent;
+    padding: 0;
+    margin: 0;
+
+}
+
+.timeline row:selected channel {
+    background-color: #666;
+}
+
+.timeline channel {
+    padding: 4px;
+    margin: 0;
+    margin-bottom: 2px;
+    background-color: #444;
+}

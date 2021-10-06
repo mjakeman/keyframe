@@ -2,6 +2,7 @@
 
 #include "../model/keyframe-layers.h"
 #include "keyframe-timeline-property.h"
+#include "keyframe-timeline-channel.h"
 
 typedef struct
 {
@@ -108,12 +109,16 @@ setup_listitem_cb (GtkListItemFactory *factory,
                    GtkListItem        *list_item,
                    gpointer            user_data)
 {
+    GtkWidget *channel = keyframe_timeline_channel_new ();
+
     GtkWidget *label = gtk_label_new ("");
     gtk_label_set_xalign (GTK_LABEL (label), 0);
 
     GtkWidget *expander = gtk_tree_expander_new ();
-    gtk_list_item_set_child (list_item, expander);
     gtk_tree_expander_set_child (expander, label);
+    gtk_box_append (GTK_BOX (channel), expander);
+
+    gtk_list_item_set_child (list_item, channel);
 }
 
 static void
@@ -121,7 +126,8 @@ bind_listitem_cb (GtkListItemFactory *factory,
                   GtkListItem        *list_item,
                   gpointer            user_data)
 {
-    GtkTreeExpander *expander = GTK_TREE_EXPANDER (gtk_list_item_get_child (list_item));
+    GtkWidget *channel = gtk_list_item_get_child (list_item);
+    GtkTreeExpander *expander = GTK_TREE_EXPANDER (gtk_widget_get_first_child (channel));
     GtkTreeListRow *row = GTK_TREE_LIST_ROW (gtk_list_item_get_item (list_item));
     gtk_tree_expander_set_list_row (expander, row);
 
@@ -185,6 +191,7 @@ keyframe_timeline_column_view_init (KeyframeTimelineColumnView *self)
     gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroll_area), vbox);
 
     GtkWidget *list_view = gtk_list_view_new (NULL, factory);
+    gtk_widget_add_css_class (list_view, "timeline");
     // gtk_list_view_set_show_separators (list_view, TRUE);
     gtk_widget_set_vexpand (list_view, TRUE);
     gtk_widget_set_hexpand (list_view, TRUE);

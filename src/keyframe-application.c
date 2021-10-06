@@ -64,6 +64,13 @@ keyframe_application_activate (GApplication *app)
     g_type_ensure (KEYFRAME_TYPE_LAYER_GEOMETRY);
     g_type_ensure (KEYFRAME_TYPE_LAYER_TEXT);
 
+    // Setup CSS Provider
+    GtkCssProvider *provider = gtk_css_provider_new ();
+    gtk_css_provider_load_from_resource (provider, "/com/mattjakeman/Keyframe/style.css");
+    gtk_style_context_add_provider_for_display (gdk_display_get_default (),
+                                                GTK_STYLE_PROVIDER (provider),
+                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
     // Activate
     GtkWindow *window;
 

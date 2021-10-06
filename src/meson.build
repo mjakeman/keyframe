@@ -12,6 +12,7 @@ keyframe_sources = [
 	'timeline/keyframe-timeline-menu.c',
 	'timeline/keyframe-timeline-column-view.c',
 	'timeline/keyframe-timeline-property.c',
+	'timeline/keyframe-timeline-channel.c',
 	'model/keyframe-layer.c',
 	'model/keyframe-layer-geometry.c',
 	'model/keyframe-layer-text.c',
@@ -29,12 +30,8 @@ keyframe_deps = [
     dependency('gstreamer-app-1.0')
 ]
 
-gnome = import('gnome')
-
-keyframe_sources += gnome.compile_resources('keyframe-resources',
-	'keyframe.gresource.xml',
-	c_name: 'keyframe'
-)
+# Move to data dir?
+subdir('res')
 
 executable('keyframe', keyframe_sources,
 	dependencies: keyframe_deps,
