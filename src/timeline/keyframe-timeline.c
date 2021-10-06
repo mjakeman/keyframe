@@ -132,11 +132,31 @@ create_layers_model_from_composition (KeyframeComposition *composition)
 static GListModel *
 create_layers_tree (gpointer layer_ptr, gpointer unused)
 {
-    // TODO: Add support for sublayers at some point
+    // This is all very broken unfortunately
     return NULL;
+
+    // For now, only support a depth of one level (i.e. must
+    // be immediate child of a layer) - Doesn't work :/
+    if (!KEYFRAME_IS_LAYER (layer_ptr))
+        return NULL;
+
+    KeyframeLayer *layer = KEYFRAME_LAYER (layer_ptr);
+
+    int n_props;
+    GParamSpec **params = g_object_class_list_properties (G_OBJECT_GET_CLASS (layer), &n_props);
+
+    GListModel *model = g_list_store_new (KEYFRAME_TYPE_LAYER);
+
+    for (int i = 0; i < n_props; i++)
+    {
+        g_list_store_append (model, layer);
+    }
+
+    // TODO: Add support for sublayers at some point
+    return model;
 }
 
-static void
+/*static void
 setup_listitem_cb (GtkListItemFactory *factory,
                    GtkListItem        *list_item)
 {
@@ -161,7 +181,7 @@ bind_listitem_cb (GtkListItemFactory *factory,
                   NULL);
 
     gtk_label_set_label (GTK_LABEL (label), layer_prop);
-}
+}*/
 
 static KeyframeLayer *
 get_current_layer (KeyframeTimeline *self)
@@ -227,11 +247,11 @@ keyframe_timeline_update_composition (KeyframeTimeline *self)
             g_object_unref (priv->timeline_binding);
         }
 
-        GtkAdjustment *adjustment = gtk_range_get_adjustment (priv->slider);
+        // GtkAdjustment *adjustment = gtk_range_get_adjustment (priv->slider);
 
         priv->composition = g_object_ref (new_comp);
         priv->comp_update_id = g_signal_connect (priv->composition, "changed", keyframe_timeline_composition_changed, self);
-        priv->timeline_binding = g_object_bind_property (priv->composition, "current-time", adjustment, "value", G_BINDING_BIDIRECTIONAL);
+        // priv->timeline_binding = g_object_bind_property (priv->composition, "current-time", adjustment, "value", G_BINDING_BIDIRECTIONAL);
     }
 
     if (priv->composition == NULL)
@@ -364,6 +384,23 @@ keyframe_timeline_init (KeyframeTimeline *self)
     // Toolbar
     GtkWidget *menu = keyframe_timeline_menu_new ();
     gtk_box_append (GTK_BOX (box), menu);
+
+    GtkWidget *paned = gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
+    gtk_widget_set_hexpand (paned, TRUE);
+    gtk_box_append (GTK_BOX (box), paned);
+
+    // TODO: Custom scrolling, don't bother with scrolled window :/
+    GtkWidget *tv1 = gtk_text_view_new ();
+    GtkWidget *tv2 = gtk_text_view_new ();
+
+    gtk_paned_set_start_child (GTK_PANED (paned), tv1);
+    gtk_paned_set_end_child (GTK_PANED (paned), tv2);
+
+
+
+    // NOTE: To implement the horizontal scrolling for the channel view, we
+    // can wrap the widget in a scrolled window which exposes the vertical
+    // adjustment only through GtkScrollable (but handles the horizontal).
 
     GtkWidget *colview = keyframe_timeline_column_view_new ();
     gtk_widget_set_vexpand (colview, TRUE);

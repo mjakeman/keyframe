@@ -109,7 +109,11 @@ setup_listitem_cb (GtkListItemFactory *factory,
 {
     GtkWidget *label = gtk_label_new ("");
     gtk_label_set_xalign (GTK_LABEL (label), 0);
-    gtk_list_item_set_child (list_item, label);
+
+    GtkWidget *expander = gtk_tree_expander_new ();
+    gtk_list_item_set_child (list_item, expander);
+    gtk_tree_expander_set_list_row (expander, gtk_list_item_get_item (list_item));
+    gtk_tree_expander_set_child (expander, label);
 }
 
 static void
@@ -118,7 +122,7 @@ bind_listitem_cb (GtkListItemFactory *factory,
                   gpointer            user_data)
 {
     GtkWidget *label;
-    label = gtk_list_item_get_child (list_item);
+    label = gtk_tree_expander_get_child (gtk_list_item_get_child (list_item));
 
     KeyframeLayer *obj;
     obj = gtk_tree_list_row_get_item (gtk_list_item_get_item (list_item));
@@ -159,12 +163,19 @@ keyframe_timeline_column_view_init (KeyframeTimelineColumnView *self)
     g_signal_connect (factory, "setup", setup_listitem_cb, self);
     g_signal_connect (factory, "bind", bind_listitem_cb, self);
 
+    GtkWidget *scroll_area = gtk_scrolled_window_new ();
+    gtk_widget_set_parent (scroll_area, GTK_WIDGET (self));
+    gtk_widget_set_layout_manager (GTK_WIDGET (self), gtk_bin_layout_new ());
+
+    GtkWidget *vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+    gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroll_area), vbox);
+
     GtkWidget *list_view = gtk_list_view_new (NULL, factory);
     gtk_list_view_set_show_separators (list_view, TRUE);
     gtk_widget_set_vexpand (list_view, TRUE);
     gtk_widget_set_hexpand (list_view, TRUE);
-    gtk_widget_set_parent (list_view, GTK_WIDGET (self));
-    gtk_widget_set_layout_manager (GTK_WIDGET (self), gtk_bin_layout_new ());
+    gtk_box_append (GTK_BOX (vbox), list_view);
+
     priv->list_view = list_view;
 
     // TODO: Accessibility Support
