@@ -109,28 +109,6 @@ keyframe_timeline_set_property (GObject      *object,
 }
 
 static GListModel *
-create_layers_model_from_composition (KeyframeComposition *composition)
-{
-    if (composition == NULL)
-        return NULL;
-
-    g_return_if_fail (KEYFRAME_IS_COMPOSITION (composition));
-
-    GListModel *model = g_list_store_new (KEYFRAME_TYPE_LAYER);
-
-    GSList *layers = keyframe_composition_get_layers (composition);
-    for (GSList *l = layers; l != NULL; l = l->next)
-    {
-        KeyframeLayer *layer = l->data;
-        g_assert (KEYFRAME_IS_LAYER (layer));
-
-        g_list_store_append (model, layer);
-    }
-
-    return G_LIST_MODEL (model);
-}
-
-static GListModel *
 create_layers_tree (gpointer layer_ptr, gpointer unused)
 {
     // For now, only support a depth of one level (i.e. must
@@ -190,8 +168,6 @@ keyframe_timeline_composition_changed (KeyframeComposition *composition,
     g_assert (composition == priv->composition);
 
     // Update List model
-    /*GListModel *model = create_layers_model_from_composition (priv->composition);*/
-
     GListModel *model = G_LIST_MODEL (composition);
 
     GtkTreeListModel *treemodel = gtk_tree_list_model_new (model, FALSE, FALSE, create_layers_tree, NULL, NULL);
@@ -351,18 +327,17 @@ keyframe_timeline_init (KeyframeTimeline *self)
 {
     KeyframeTimelinePrivate *priv = keyframe_timeline_get_instance_private (self);
 
-    GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-    gtk_widget_set_layout_manager (GTK_WIDGET (self), gtk_bin_layout_new ());
-    gtk_widget_set_parent (box, GTK_WIDGET (self));
+    GtkLayoutManager *layout = gtk_box_layout_new (GTK_ORIENTATION_HORIZONTAL);
+    gtk_widget_set_layout_manager (GTK_WIDGET (self), layout);
 
     // Toolbar
     GtkWidget *menu = keyframe_timeline_menu_new ();
-    gtk_box_append (GTK_BOX (box), menu);
+    gtk_widget_set_parent (menu, GTK_WIDGET (self));
 
     // Data Table + Time Track
     GtkWidget *colview = keyframe_timeline_column_view_new ();
     gtk_widget_set_vexpand (colview, TRUE);
     gtk_widget_set_hexpand (colview, TRUE);
-    gtk_box_append (GTK_BOX (box), colview);
+    gtk_widget_set_parent (colview, GTK_WIDGET (self));
     priv->col_view = colview;
 }

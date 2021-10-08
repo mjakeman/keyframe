@@ -151,12 +151,8 @@ bind_listitem_cb (GtkListItemFactory *factory,
 
     if (KEYFRAME_IS_LAYER (bind_obj))
     {
-        char *layer_prop;
-        g_object_get (bind_obj,
-                      "name", &layer_prop,
-                      NULL);
-
-        gtk_label_set_label (GTK_LABEL (label), layer_prop);
+        g_object_bind_property (bind_obj, "name", label, "label",
+                                G_BINDING_DEFAULT|G_BINDING_SYNC_CREATE);
         g_object_bind_property (bind_obj, "visible", checkbox, "active",
                                 G_BINDING_BIDIRECTIONAL|G_BINDING_SYNC_CREATE);
     }

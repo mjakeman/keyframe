@@ -147,12 +147,14 @@ keyframe_composition_push_layer (KeyframeComposition *self, KeyframeLayer *layer
     }
 
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
-    int final_index = g_list_length (priv->layers) - 1;
-
     g_object_set (layer, "composition", g_object_ref (self), NULL);
-    priv->layers = g_list_append (priv->layers, layer); // TODO: Prepend?
+    priv->layers = g_list_append (priv->layers, layer);
 
-    g_list_model_items_changed (G_LIST_MODEL (self), final_index, 0, 1);
+    // TODO: List model reverses indices (should fix that)
+    g_list_model_items_changed (G_LIST_MODEL (self),
+                                0,  /* start index */
+                                0,  /* removed */
+                                1); /* added */
     g_signal_emit (self, signals[CHANGED], 0);
 }
 
@@ -161,11 +163,18 @@ keyframe_composition_delete_layer (KeyframeComposition *self, KeyframeLayer *lay
 {
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
     guint index = g_list_index (priv->layers, layer);
+    guint length = g_list_length (priv->layers);
+
+    // TODO: Simplify list model storage
+    // Our list model code is a bit strange, since we store bottom to top, but
+    // retrieve top to bottom. Hence why there is hacky code like this. We
+    // should settle on one or the other - this is messy.
+    guint list_model_position = (length - 1) - index;
 
     priv->layers = g_list_remove (priv->layers, layer);
     g_object_unref (layer);
 
-    g_list_model_items_changed (G_LIST_MODEL (self), index, 1, 0);
+    g_list_model_items_changed (G_LIST_MODEL (self), list_model_position, 1, 0);
     g_signal_emit (self, signals[CHANGED], 0);
 }
 
