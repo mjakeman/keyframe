@@ -2,7 +2,9 @@
 
 #include "../model/keyframe-layers.h"
 #include "keyframe-timeline-property.h"
+#include "keyframe-timeline-header.h"
 #include "keyframe-timeline-channel.h"
+#include "keyframe-timeline-track.h"
 
 typedef struct
 {
@@ -99,6 +101,10 @@ keyframe_timeline_column_view_class_init (KeyframeTimelineColumnViewClass *klass
     object_class->get_property = keyframe_timeline_column_view_get_property;
     object_class->set_property = keyframe_timeline_column_view_set_property;
 
+    GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
+
+    gtk_widget_class_set_css_name (widget_class, "timeline");
+
     properties [PROP_MODEL] = g_param_spec_object ("model", "Model", "Model", GTK_TYPE_SELECTION_MODEL, G_PARAM_READWRITE);
 
     g_object_class_install_properties (object_class, N_PROPS, properties);
@@ -110,16 +116,18 @@ setup_listitem_cb (GtkListItemFactory *factory,
                    gpointer            user_data)
 {
     GtkWidget *channel = keyframe_timeline_channel_new ();
-    gtk_box_set_spacing (GTK_BOX (channel), 5);
+    GtkWidget *info_box = keyframe_timeline_channel_get_info_box (KEYFRAME_TIMELINE_CHANNEL (channel));
 
     GtkWidget *checkbox = gtk_check_button_new ();
-    gtk_box_append (GTK_BOX (channel), checkbox);
+    gtk_box_append (GTK_BOX (info_box), checkbox);
 
     GtkWidget *expander = gtk_tree_expander_new ();
     GtkWidget *label = gtk_label_new ("");
     gtk_label_set_xalign (GTK_LABEL (label), 0);
+    gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_MIDDLE);
+    gtk_widget_set_size_request (label, 200, -1);
     gtk_tree_expander_set_child (GTK_TREE_EXPANDER (expander), label);
-    gtk_box_append (GTK_BOX (channel), expander);
+    gtk_box_append (GTK_BOX (info_box), expander);
 
     gtk_list_item_set_child (list_item, channel);
 }
@@ -130,15 +138,16 @@ bind_listitem_cb (GtkListItemFactory *factory,
                   gpointer            user_data)
 {
     GtkWidget *channel = gtk_list_item_get_child (list_item);
-    GtkWidget *checkbox = gtk_widget_get_first_child (channel);
-    // TODO: This is really ugly -> Create an API for KeyframeTimelineChannel
-    GtkTreeExpander *expander = GTK_TREE_EXPANDER (gtk_widget_get_next_sibling (checkbox));
     GtkTreeListRow *row = GTK_TREE_LIST_ROW (gtk_list_item_get_item (list_item));
+    GObject *bind_obj = gtk_tree_list_row_get_item (row);
+
+    // TODO: This is really ugly -> Create an API for KeyframeTimelineChannel
+    GtkWidget *info_box = keyframe_timeline_channel_get_info_box (KEYFRAME_TIMELINE_CHANNEL (channel));
+    GtkWidget *checkbox = gtk_widget_get_first_child (info_box);
+    GtkTreeExpander *expander = GTK_TREE_EXPANDER (gtk_widget_get_next_sibling (checkbox));
     gtk_tree_expander_set_list_row (expander, row);
 
     GtkWidget *label = gtk_tree_expander_get_child (expander);
-    GObject *bind_obj = gtk_tree_list_row_get_item (row);
-
 
     if (KEYFRAME_IS_LAYER (bind_obj))
     {
@@ -198,29 +207,27 @@ keyframe_timeline_column_view_init (KeyframeTimelineColumnView *self)
     KeyframeTimelineColumnViewPrivate *priv = keyframe_timeline_column_view_get_instance_private (self);
 
     GtkListItemFactory *factory = gtk_signal_list_item_factory_new ();
-    g_signal_connect (factory, "setup", setup_listitem_cb, self);
-    g_signal_connect (factory, "bind", bind_listitem_cb, self);
-
-    GtkWidget *scroll_area = gtk_scrolled_window_new ();
-    gtk_widget_set_parent (scroll_area, GTK_WIDGET (self));
-    gtk_widget_set_layout_manager (GTK_WIDGET (self), gtk_bin_layout_new ());
+    g_signal_connect (factory, "setup", G_CALLBACK (setup_listitem_cb), self);
+    g_signal_connect (factory, "bind", G_CALLBACK (bind_listitem_cb), self);
 
     GtkWidget *vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-    gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroll_area), vbox);
+    gtk_widget_set_parent (vbox, GTK_WIDGET (self));
+    gtk_widget_set_layout_manager (GTK_WIDGET (self), gtk_bin_layout_new ());
+
+    GtkWidget *header = keyframe_timeline_header_new ();
+    gtk_box_append (GTK_BOX (vbox), header);
 
     GtkWidget *list_view = gtk_list_view_new (NULL, factory);
-    gtk_widget_add_css_class (list_view, "timeline");
-    // gtk_list_view_set_show_separators (list_view, TRUE);
     gtk_widget_set_vexpand (list_view, TRUE);
     gtk_widget_set_hexpand (list_view, TRUE);
-    gtk_box_append (GTK_BOX (vbox), list_view);
+    priv->list_view = GTK_LIST_VIEW (list_view);
 
-    priv->list_view = list_view;
+    GtkWidget *scroll_area = gtk_scrolled_window_new ();
+    gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroll_area), list_view);
+    gtk_box_append (GTK_BOX (vbox), scroll_area);
 
     // TODO: Accessibility Support
     // Since we're using out own columnview-like implementation, accessibility
     // support needs to be added manually. Figure out what level of
     // accessibility is practical for an application of this type.
-
-    // g_object_ (self, "model", list_view, "model", G_BINDING_DEFAULT);
 }

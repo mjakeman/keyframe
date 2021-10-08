@@ -1,24 +1,32 @@
-.timeline {
+timeline {
     background-color: #222;
 }
 
-.timeline row {
+timeline row {
     background-color: transparent;
     padding: 0;
     margin: 0;
 }
 
-.timeline row:selected channel {
+timeline row:selected channel {
     background-color: #666;
 }
 
 /* TODO: respect light/dark theme */
 @define-color channel_color #444;
 
-.timeline channel {
-    padding: 4px;
+timeline header label {
+    font-weight: bold;
+    color: alpha(white, 0.4);
+}
+
+timeline channel {
     margin: 0;
     margin-bottom: 2px;
+}
+
+timeline channel .infobox {
+    padding: 4px;
 }
 
 .channel-depth-0 {
@@ -35,4 +43,9 @@
 
 .channel-depth-3 {
     background-color: shade(@channel_color, 0.1);
+}
+
+timeline track {
+    background-color: #111;
+    border-left: 2px solid #555;
 }

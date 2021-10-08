@@ -134,18 +134,20 @@ keyframe_timeline_menu_init (KeyframeTimelineMenu *self)
     gtk_menu_button_set_icon_name (GTK_MENU_BUTTON (add_layer_btn), "document-new-symbolic");
     gtk_menu_button_set_direction (GTK_MENU_BUTTON (add_layer_btn), GTK_ARROW_UP);
     gtk_menu_button_set_create_popup_func (GTK_MENU_BUTTON (add_layer_btn),
-                                           cb_new_layer_popover,
+                                           (GtkMenuButtonCreatePopupFunc)cb_new_layer_popover,
                                            g_object_ref (self),
                                            g_object_unref);
     gtk_box_append (GTK_BOX (toolbar), add_layer_btn);
 
     GtkWidget *delete_layer_btn = gtk_button_new ();
     gtk_button_set_child (GTK_BUTTON (delete_layer_btn), gtk_image_new_from_icon_name ("user-trash-symbolic"));
-    g_signal_connect (delete_layer_btn, "clicked", cb_delete_layer, self);
+    g_signal_connect (delete_layer_btn, "clicked", G_CALLBACK (cb_delete_layer), self);
+    gtk_widget_add_css_class (delete_layer_btn, "flat");
     gtk_box_append (GTK_BOX (toolbar), delete_layer_btn);
 
     GtkWidget *edit_layer_btn = gtk_button_new ();
     gtk_button_set_child (GTK_BUTTON (edit_layer_btn), gtk_image_new_from_icon_name ("document-edit-symbolic"));
-    g_signal_connect (edit_layer_btn, "clicked", cb_edit_layer, self);
+    g_signal_connect (edit_layer_btn, "clicked", G_CALLBACK (cb_edit_layer), self);
+    gtk_widget_add_css_class (edit_layer_btn, "flat");
     gtk_box_append (GTK_BOX (toolbar), edit_layer_btn);
 }
