@@ -254,7 +254,12 @@ static void render_frame (KeyframeCanvas *self)
             KeyframeLayer *layer = l->data;
             g_assert (KEYFRAME_IS_LAYER (layer));
 
-            keyframe_layer_fill_command_buffer (layer, renderer);
+            gboolean visible;
+            g_object_get (layer, "visible", &visible, NULL);
+            g_print ("Visible: %d\n", visible);
+
+            if (visible)
+                keyframe_layer_fill_command_buffer (layer, renderer);
         }
 
         priv->surface = keyframe_renderer_end_frame (renderer);

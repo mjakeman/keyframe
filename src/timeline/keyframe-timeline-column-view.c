@@ -110,12 +110,15 @@ setup_listitem_cb (GtkListItemFactory *factory,
                    gpointer            user_data)
 {
     GtkWidget *channel = keyframe_timeline_channel_new ();
+    gtk_box_set_spacing (GTK_BOX (channel), 5);
 
-    GtkWidget *label = gtk_label_new ("");
-    gtk_label_set_xalign (GTK_LABEL (label), 0);
+    GtkWidget *checkbox = gtk_check_button_new ();
+    gtk_box_append (GTK_BOX (channel), checkbox);
 
     GtkWidget *expander = gtk_tree_expander_new ();
-    gtk_tree_expander_set_child (expander, label);
+    GtkWidget *label = gtk_label_new ("");
+    gtk_label_set_xalign (GTK_LABEL (label), 0);
+    gtk_tree_expander_set_child (GTK_TREE_EXPANDER (expander), label);
     gtk_box_append (GTK_BOX (channel), expander);
 
     gtk_list_item_set_child (list_item, channel);
@@ -127,12 +130,15 @@ bind_listitem_cb (GtkListItemFactory *factory,
                   gpointer            user_data)
 {
     GtkWidget *channel = gtk_list_item_get_child (list_item);
-    GtkTreeExpander *expander = GTK_TREE_EXPANDER (gtk_widget_get_first_child (channel));
+    GtkWidget *checkbox = gtk_widget_get_first_child (channel);
+    // TODO: This is really ugly -> Create an API for KeyframeTimelineChannel
+    GtkTreeExpander *expander = GTK_TREE_EXPANDER (gtk_widget_get_next_sibling (checkbox));
     GtkTreeListRow *row = GTK_TREE_LIST_ROW (gtk_list_item_get_item (list_item));
     gtk_tree_expander_set_list_row (expander, row);
 
     GtkWidget *label = gtk_tree_expander_get_child (expander);
     GObject *bind_obj = gtk_tree_list_row_get_item (row);
+
 
     if (KEYFRAME_IS_LAYER (bind_obj))
     {
@@ -142,6 +148,8 @@ bind_listitem_cb (GtkListItemFactory *factory,
                       NULL);
 
         gtk_label_set_label (GTK_LABEL (label), layer_prop);
+        g_object_bind_property (bind_obj, "visible", checkbox, "active",
+                                G_BINDING_BIDIRECTIONAL|G_BINDING_SYNC_CREATE);
     }
     else if (KEYFRAME_IS_TIMELINE_PROPERTY (bind_obj))
     {
@@ -153,6 +161,16 @@ bind_listitem_cb (GtkListItemFactory *factory,
         gtk_label_set_label (GTK_LABEL (label), g_param_spec_get_nick (param));
         gtk_widget_set_tooltip_text (label, g_param_spec_get_blurb (param));
     }
+
+    int depth = gtk_tree_list_row_get_depth (row);
+    gtk_widget_remove_css_class (GTK_WIDGET (channel), "channel-depth-0");
+    gtk_widget_remove_css_class (GTK_WIDGET (channel), "channel-depth-1");
+    gtk_widget_remove_css_class (GTK_WIDGET (channel), "channel-depth-2");
+    gtk_widget_remove_css_class (GTK_WIDGET (channel), "channel-depth-3");
+
+    char *style_class = g_strdup_printf ("channel-depth-%d", depth);
+    gtk_widget_add_css_class (GTK_WIDGET (channel), style_class);
+    g_free (style_class);
 }
 
 void
@@ -204,5 +222,5 @@ keyframe_timeline_column_view_init (KeyframeTimelineColumnView *self)
     // support needs to be added manually. Figure out what level of
     // accessibility is practical for an application of this type.
 
-    // g_object_bind_property (self, "model", list_view, "model", G_BINDING_DEFAULT);
+    // g_object_ (self, "model", list_view, "model", G_BINDING_DEFAULT);
 }

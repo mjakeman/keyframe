@@ -225,7 +225,7 @@ keyframe_timeline_update_composition (KeyframeTimeline *self)
 
         priv->composition = g_object_ref (new_comp);
         priv->comp_update_id = g_signal_connect (priv->composition, "changed", keyframe_timeline_composition_changed, self);
-        // priv->timeline_binding = g_object_bind_property (priv->composition, "current-time", adjustment, "value", G_BINDING_BIDIRECTIONAL);
+        // priv->timeline_binding = g_object_ (priv->composition, "current-time", adjustment, "value", G_BINDING_BIDIRECTIONAL);
     }
 
     if (priv->composition == NULL)

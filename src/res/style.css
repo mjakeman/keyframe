@@ -6,16 +6,33 @@
     background-color: transparent;
     padding: 0;
     margin: 0;
-
 }
 
 .timeline row:selected channel {
     background-color: #666;
 }
 
+/* TODO: respect light/dark theme */
+@define-color channel_color #444;
+
 .timeline channel {
     padding: 4px;
     margin: 0;
     margin-bottom: 2px;
-    background-color: #444;
+}
+
+.channel-depth-0 {
+    background-color: @channel_color;
+}
+
+.channel-depth-1 {
+    background-color: shade(@channel_color, 0.7);
+}
+
+.channel-depth-2 {
+    background-color: shade(@channel_color, 0.4);
+}
+
+.channel-depth-3 {
+    background-color: shade(@channel_color, 0.1);
 }

@@ -5,6 +5,7 @@ typedef struct
     char *name;
     char *type;
     float x, y;
+    gboolean visible;
 } KeyframeLayerPrivate;
 
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (KeyframeLayer, keyframe_layer, G_TYPE_OBJECT)
@@ -13,6 +14,7 @@ enum {
     PROP_0,
     PROP_NAME,
     PROP_TYPE,
+    PROP_VISIBLE,
     PROP_X,
     PROP_Y,
     N_PROPS
@@ -46,6 +48,10 @@ keyframe_layer_get_property (GObject    *object,
         case PROP_TYPE:
             g_value_set_string (value, KEYFRAME_LAYER_GET_CLASS (self)->type (self));
             break;
+        case PROP_VISIBLE:
+            // TODO: Need to propagate to parent composition
+            g_value_set_boolean (value, priv->visible);
+            break;
         case PROP_X:
             g_value_set_float (value, priv->x);
             break;
@@ -71,6 +77,10 @@ keyframe_layer_set_property (GObject      *object,
         case PROP_NAME:
             g_free (priv->name);
             priv->name = g_value_dup_string (value);
+            break;
+        case PROP_VISIBLE:
+            priv->visible = g_value_get_boolean (value);
+            g_print ("Set Visible: %d\n", priv->visible);
             break;
         case PROP_X:
             priv->x = g_value_get_float (value);
@@ -144,6 +154,13 @@ keyframe_layer_class_init (KeyframeLayerClass *klass)
                             "Position of the layer on the y-axis (in pixels).",
                             -G_MAXFLOAT, G_MAXFLOAT, 0,
                             G_PARAM_READWRITE);
+
+    properties [PROP_VISIBLE] =
+        g_param_spec_boolean ("visible",
+                              "Visible",
+                              "Whether the layer is visible or not.",
+                              TRUE,
+                              G_PARAM_READWRITE);
 
     g_object_class_install_properties (object_class, N_PROPS, properties);
 }
