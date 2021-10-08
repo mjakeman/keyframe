@@ -138,7 +138,16 @@ keyframe_composition_set_property (GObject      *object,
 void
 keyframe_composition_push_layer (KeyframeComposition *self, KeyframeLayer *layer)
 {
+    KeyframeComposition *existing;
+    g_object_get (layer, "composition", &existing, NULL);
+    if (existing != NULL)
+    {
+        g_critical ("Layer already has a parent composition");
+        return;
+    }
+
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
+    g_object_set (layer, "composition", g_object_ref (self), NULL);
     priv->layers = g_list_append (priv->layers, layer); // TODO: Prepend?
     g_signal_emit (self, signals[CHANGED], 0);
 }
@@ -148,6 +157,7 @@ keyframe_composition_delete_layer (KeyframeComposition *self, KeyframeLayer *lay
 {
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
     priv->layers = g_list_remove (priv->layers, layer);
+    g_object_unref (layer);
     g_signal_emit (self, signals[CHANGED], 0);
 }
 

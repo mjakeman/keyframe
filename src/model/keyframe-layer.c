@@ -1,4 +1,5 @@
 #include "keyframe-layer.h"
+#include "keyframe-composition.h"
 
 typedef struct
 {
@@ -6,6 +7,8 @@ typedef struct
     char *type;
     float x, y;
     gboolean visible;
+
+    KeyframeComposition *parent;
 } KeyframeLayerPrivate;
 
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (KeyframeLayer, keyframe_layer, G_TYPE_OBJECT)
@@ -14,6 +17,7 @@ enum {
     PROP_0,
     PROP_NAME,
     PROP_TYPE,
+    PROP_COMPOSITION,
     PROP_VISIBLE,
     PROP_X,
     PROP_Y,
@@ -27,6 +31,8 @@ keyframe_layer_finalize (GObject *object)
 {
     KeyframeLayer *self = (KeyframeLayer *)object;
     KeyframeLayerPrivate *priv = keyframe_layer_get_instance_private (self);
+
+    g_object_unref (priv->parent);
 
     G_OBJECT_CLASS (keyframe_layer_parent_class)->finalize (object);
 }
@@ -48,8 +54,10 @@ keyframe_layer_get_property (GObject    *object,
         case PROP_TYPE:
             g_value_set_string (value, KEYFRAME_LAYER_GET_CLASS (self)->type (self));
             break;
+        case PROP_COMPOSITION:
+            g_value_set_object (value, priv->parent);
+            break;
         case PROP_VISIBLE:
-            // TODO: Need to propagate to parent composition
             g_value_set_boolean (value, priv->visible);
             break;
         case PROP_X:
@@ -77,6 +85,9 @@ keyframe_layer_set_property (GObject      *object,
         case PROP_NAME:
             g_free (priv->name);
             priv->name = g_value_dup_string (value);
+            break;
+        case PROP_COMPOSITION:
+            priv->parent = g_value_get_object (value);
             break;
         case PROP_VISIBLE:
             priv->visible = g_value_get_boolean (value);
@@ -113,6 +124,16 @@ keyframe_layer_type_default (KeyframeLayer *self)
                type_name);
 
     return type_name;
+}
+
+static void
+keyframe_layer_notify (KeyframeLayer *self, GParamSpec *pspec, gpointer)
+{
+    KeyframeLayerPrivate *priv = keyframe_layer_get_instance_private (self);
+
+    // Invalidate composition
+    if (priv->parent != NULL)
+        keyframe_composition_invalidate (priv->parent);
 }
 
 static void
@@ -162,10 +183,18 @@ keyframe_layer_class_init (KeyframeLayerClass *klass)
                               TRUE,
                               G_PARAM_READWRITE);
 
+    properties [PROP_COMPOSITION] =
+        g_param_spec_object ("composition",
+                             "Composition",
+                             "Parent Composition",
+                             KEYFRAME_TYPE_COMPOSITION,
+                             G_PARAM_READWRITE);
+
     g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
 keyframe_layer_init (KeyframeLayer *self)
 {
+    g_signal_connect (self, "notify", G_CALLBACK (keyframe_layer_notify), NULL);
 }
