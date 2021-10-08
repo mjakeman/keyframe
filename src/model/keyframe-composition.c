@@ -147,8 +147,12 @@ keyframe_composition_push_layer (KeyframeComposition *self, KeyframeLayer *layer
     }
 
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
+    int final_index = g_list_length (priv->layers) - 1;
+
     g_object_set (layer, "composition", g_object_ref (self), NULL);
     priv->layers = g_list_append (priv->layers, layer); // TODO: Prepend?
+
+    g_list_model_items_changed (G_LIST_MODEL (self), final_index, 0, 1);
     g_signal_emit (self, signals[CHANGED], 0);
 }
 
@@ -156,8 +160,12 @@ void
 keyframe_composition_delete_layer (KeyframeComposition *self, KeyframeLayer *layer)
 {
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
+    guint index = g_list_index (priv->layers, layer);
+
     priv->layers = g_list_remove (priv->layers, layer);
     g_object_unref (layer);
+
+    g_list_model_items_changed (G_LIST_MODEL (self), index, 1, 0);
     g_signal_emit (self, signals[CHANGED], 0);
 }
 
