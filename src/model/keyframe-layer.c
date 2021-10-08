@@ -197,4 +197,9 @@ static void
 keyframe_layer_init (KeyframeLayer *self)
 {
     g_signal_connect (self, "notify", G_CALLBACK (keyframe_layer_notify), NULL);
+
+    // Default properties
+    // TODO: Can these be set automatically?
+    KeyframeLayerPrivate *priv = keyframe_layer_get_instance_private (self);
+    priv->visible = TRUE;
 }
