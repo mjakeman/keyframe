@@ -16,3 +16,5 @@ struct _KeyframeTimelineTrackClass
 GtkWidget *keyframe_timeline_track_new (void);
 
 G_END_DECLS
+
+#include "keyframe-timeline-tracks.h"

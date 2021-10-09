@@ -1,6 +1,11 @@
 #include "keyframe-timeline-track.h"
 
-G_DEFINE_TYPE (KeyframeTimelineTrack, keyframe_timeline_track, GTK_TYPE_WIDGET)
+typedef struct
+{
+
+} KeyframeTimelineTrackPrivate;
+
+G_DEFINE_TYPE_WITH_PRIVATE (KeyframeTimelineTrack, keyframe_timeline_track, GTK_TYPE_WIDGET)
 
 enum {
     PROP_0,
@@ -26,6 +31,7 @@ static void
 keyframe_timeline_track_finalize (GObject *object)
 {
     KeyframeTimelineTrack *self = (KeyframeTimelineTrack *)object;
+    KeyframeTimelineTrackPrivate *priv = keyframe_timeline_track_get_instance_private (self);
 
     G_OBJECT_CLASS (keyframe_timeline_track_parent_class)->finalize (object);
 }
@@ -70,10 +76,12 @@ keyframe_timeline_track_class_init (KeyframeTimelineTrackClass *klass)
     object_class->set_property = keyframe_timeline_track_set_property;
 
     GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
+
     gtk_widget_class_set_css_name (widget_class, "track");
 }
 
 static void
 keyframe_timeline_track_init (KeyframeTimelineTrack *self)
 {
+    gtk_widget_set_overflow (GTK_WIDGET (self), GTK_OVERFLOW_HIDDEN);
 }

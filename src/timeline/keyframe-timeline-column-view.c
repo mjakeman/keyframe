@@ -4,7 +4,7 @@
 #include "keyframe-timeline-property.h"
 #include "keyframe-timeline-header.h"
 #include "keyframe-timeline-channel.h"
-#include "keyframe-timeline-track.h"
+#include "keyframe-timeline-tracks.h"
 
 typedef struct
 {
@@ -155,6 +155,17 @@ bind_listitem_cb (GtkListItemFactory *factory,
                                 G_BINDING_DEFAULT|G_BINDING_SYNC_CREATE);
         g_object_bind_property (bind_obj, "visible", checkbox, "active",
                                 G_BINDING_BIDIRECTIONAL|G_BINDING_SYNC_CREATE);
+
+        GtkWidget *track = keyframe_timeline_track_clip_new ();
+        keyframe_timeline_channel_set_track (channel, track);
+
+        char *layer_type;
+        g_object_get (bind_obj,
+                      "type", &layer_type,
+                      NULL);
+
+        gtk_widget_set_tooltip_text (label, layer_type);
+        g_free (layer_type);
     }
     else if (KEYFRAME_IS_TIMELINE_PROPERTY (bind_obj))
     {
@@ -162,6 +173,11 @@ bind_listitem_cb (GtkListItemFactory *factory,
         g_object_get (bind_obj,
                       "param-spec", &param,
                       NULL);
+
+        // TODO: Maybe set the track type rather than the widget
+        // That way we can only recreate it if the list row type has changed
+        GtkWidget *track = keyframe_timeline_track_new ();
+        keyframe_timeline_channel_set_track (channel, track);
 
         gtk_label_set_label (GTK_LABEL (label), g_param_spec_get_nick (param));
         gtk_widget_set_tooltip_text (label, g_param_spec_get_blurb (param));
@@ -220,6 +236,7 @@ keyframe_timeline_column_view_init (KeyframeTimelineColumnView *self)
 
     GtkWidget *scroll_area = gtk_scrolled_window_new ();
     gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroll_area), list_view);
+    gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scroll_area), 200);
     gtk_box_append (GTK_BOX (vbox), scroll_area);
 
     // TODO: Accessibility Support
