@@ -25,6 +25,53 @@ static GParamSpec *properties [N_PROPS];
 
 
 
+// START CLIP WIDGET
+
+
+#define KEYFRAME_TYPE_TIMELINE_CLIP (keyframe_timeline_clip_get_type())
+
+G_DECLARE_FINAL_TYPE (KeyframeTimelineClip, keyframe_timeline_clip, KEYFRAME, TIMELINE_CLIP, GtkWidget)
+
+struct _KeyframeTimelineClip
+{
+    GtkWidget parent_instance;
+};
+
+G_DEFINE_FINAL_TYPE (KeyframeTimelineClip, keyframe_timeline_clip, GTK_TYPE_WIDGET)
+
+static GtkWidget *
+keyframe_timeline_clip_new ()
+{
+    return GTK_WIDGET (g_object_new (KEYFRAME_TYPE_TIMELINE_CLIP, 0));
+}
+
+static void
+keyframe_timeline_clip_class_init (KeyframeTimelineClipClass *klass)
+{
+    GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
+
+    gtk_widget_class_set_css_name (widget_class, "clip");
+    gtk_widget_class_set_layout_manager_type (widget_class, GTK_TYPE_BOX_LAYOUT);
+}
+
+static void
+keyframe_timeline_clip_set_active_cursor (KeyframeTimelineClip *self, gboolean pressed)
+{
+    gchar *cursor_name = pressed ? "grabbing" : "grab";
+    GdkCursor *cursor = gdk_cursor_new_from_name (cursor_name, NULL);
+    gtk_widget_set_cursor (GTK_WIDGET (self), cursor);
+}
+
+static void
+keyframe_timeline_clip_init (KeyframeTimelineClip *self)
+{
+    // TODO: Drag Handles
+    keyframe_timeline_clip_set_active_cursor (self, FALSE);
+}
+
+
+// END CLIP WIDGET
+
 // START LAYOUT MANAGER
 
 
@@ -196,6 +243,8 @@ cb_drag_begin (GtkGestureDrag            *gesture,
     self->drag_start_x = self->clip_timestamp_start;
     self->drag_current_x = self->clip_timestamp_start;
     self->drag_active = true;
+
+    keyframe_timeline_clip_set_active_cursor (KEYFRAME_TIMELINE_CLIP (self->clip), TRUE);
 }
 
 static void
@@ -222,9 +271,11 @@ cb_drag_end (GtkGestureDrag            *gesture,
     self->clip_timestamp_start = self->drag_current_x;
     self->clip_timestamp_end = self->drag_current_x + clip_width;
 
-    self->drag_active = false;
+    self->drag_active = FALSE;
     self->drag_start_x = 0;
     self->drag_current_x = 0;
+
+    keyframe_timeline_clip_set_active_cursor (KEYFRAME_TIMELINE_CLIP (self->clip), FALSE);
 
     gtk_widget_queue_allocate (GTK_WIDGET (self));
 }
@@ -232,9 +283,8 @@ cb_drag_end (GtkGestureDrag            *gesture,
 static void
 keyframe_timeline_track_clip_init (KeyframeTimelineTrackClip *self)
 {
-    self->clip = gtk_label_new ("Boo!");
+    self->clip = keyframe_timeline_clip_new ();
     gtk_widget_set_parent (self->clip, GTK_WIDGET (self));
-    gtk_widget_add_css_class (self->clip, "clip");
 
     // TODO: Scaling/Zoom
     self->clip_timestamp_start = 50;
