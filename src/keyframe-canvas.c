@@ -255,11 +255,19 @@ static void render_frame (KeyframeCanvas *self)
             g_assert (KEYFRAME_IS_LAYER (layer));
 
             gboolean visible;
-            g_object_get (layer, "visible", &visible, NULL);
-            g_print ("Visible: %d\n", visible);
+            float start_time, end_time;
+            g_object_get (layer,
+                          "visible", &visible,
+                          "start-time", &start_time,
+                          "end-time", &end_time,
+                          NULL);
 
-            if (visible)
+            if (visible &&
+                cur_time >= start_time &&
+                cur_time <= end_time)
+            {
                 keyframe_layer_fill_command_buffer (layer, renderer);
+            }
         }
 
         priv->surface = keyframe_renderer_end_frame (renderer);

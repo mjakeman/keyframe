@@ -8,6 +8,9 @@ typedef struct
     float x, y;
     gboolean visible;
 
+    float start_time;
+    float end_time;
+
     KeyframeComposition *parent;
 } KeyframeLayerPrivate;
 
@@ -19,6 +22,8 @@ enum {
     PROP_TYPE,
     PROP_COMPOSITION,
     PROP_VISIBLE,
+    PROP_START_TIME,
+    PROP_END_TIME,
     PROP_X,
     PROP_Y,
     N_PROPS
@@ -60,6 +65,12 @@ keyframe_layer_get_property (GObject    *object,
         case PROP_VISIBLE:
             g_value_set_boolean (value, priv->visible);
             break;
+        case PROP_START_TIME:
+            g_value_set_float (value, priv->start_time);
+            break;
+        case PROP_END_TIME:
+            g_value_set_float (value, priv->end_time);
+            break;
         case PROP_X:
             g_value_set_float (value, priv->x);
             break;
@@ -92,6 +103,12 @@ keyframe_layer_set_property (GObject      *object,
         case PROP_VISIBLE:
             priv->visible = g_value_get_boolean (value);
             g_print ("Set Visible: %d\n", priv->visible);
+            break;
+        case PROP_START_TIME:
+            priv->start_time = g_value_get_float (value);
+            break;
+        case PROP_END_TIME:
+            priv->end_time = g_value_get_float (value);
             break;
         case PROP_X:
             priv->x = g_value_get_float (value);
@@ -190,6 +207,20 @@ keyframe_layer_class_init (KeyframeLayerClass *klass)
                              KEYFRAME_TYPE_COMPOSITION,
                              G_PARAM_READWRITE);
 
+    properties [PROP_START_TIME] =
+        g_param_spec_float ("start-time",
+                            "Start Time",
+                            "Start Time",
+                            0, G_MAXFLOAT, 0,
+                            G_PARAM_READWRITE);
+
+    properties [PROP_END_TIME] =
+        g_param_spec_float ("end-time",
+                            "End Time",
+                            "End Time",
+                            0, G_MAXFLOAT, 0,
+                            G_PARAM_READWRITE);
+
     g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
@@ -202,4 +233,6 @@ keyframe_layer_init (KeyframeLayer *self)
     // TODO: Can these be set automatically?
     KeyframeLayerPrivate *priv = keyframe_layer_get_instance_private (self);
     priv->visible = TRUE;
+    priv->start_time = 0;
+    priv->end_time = 1000;
 }

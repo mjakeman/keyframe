@@ -157,7 +157,12 @@ bind_listitem_cb (GtkListItemFactory *factory,
                                 G_BINDING_BIDIRECTIONAL|G_BINDING_SYNC_CREATE);
 
         GtkWidget *track = keyframe_timeline_track_clip_new ();
-        keyframe_timeline_channel_set_track (channel, track);
+        g_object_bind_property (bind_obj, "start-time", track, "start-time",
+                                G_BINDING_BIDIRECTIONAL|G_BINDING_SYNC_CREATE);
+        g_object_bind_property (bind_obj, "end-time", track, "end-time",
+                                G_BINDING_BIDIRECTIONAL|G_BINDING_SYNC_CREATE);
+        keyframe_timeline_channel_set_track (KEYFRAME_TIMELINE_CHANNEL (channel),
+                                             KEYFRAME_TIMELINE_TRACK (track));
 
         char *layer_type;
         g_object_get (bind_obj,

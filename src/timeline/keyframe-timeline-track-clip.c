@@ -18,6 +18,8 @@ G_DEFINE_FINAL_TYPE (KeyframeTimelineTrackClip, keyframe_timeline_track_clip, KE
 
 enum {
     PROP_0,
+    PROP_START_TIME,
+    PROP_END_TIME,
     N_PROPS
 };
 
@@ -183,10 +185,16 @@ keyframe_timeline_track_clip_get_property (GObject    *object,
     KeyframeTimelineTrackClip *self = KEYFRAME_TIMELINE_TRACK_CLIP (object);
 
     switch (prop_id)
-      {
-      default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      }
+    {
+        case PROP_START_TIME:
+            g_value_set_float (value, self->clip_timestamp_start);
+            break;
+        case PROP_END_TIME:
+            g_value_set_float (value, self->clip_timestamp_end);
+            break;
+        default:
+            G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    }
 }
 
 static void
@@ -198,10 +206,16 @@ keyframe_timeline_track_clip_set_property (GObject      *object,
     KeyframeTimelineTrackClip *self = KEYFRAME_TIMELINE_TRACK_CLIP (object);
 
     switch (prop_id)
-      {
-      default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      }
+    {
+        case PROP_START_TIME:
+            self->clip_timestamp_start = g_value_get_float (value);
+            break;
+        case PROP_END_TIME:
+            self->clip_timestamp_end = g_value_get_float (value);
+            break;
+        default:
+            G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    }
 }
 
 static void
@@ -212,6 +226,22 @@ keyframe_timeline_track_clip_class_init (KeyframeTimelineTrackClipClass *klass)
     object_class->finalize = keyframe_timeline_track_clip_finalize;
     object_class->get_property = keyframe_timeline_track_clip_get_property;
     object_class->set_property = keyframe_timeline_track_clip_set_property;
+
+    properties [PROP_START_TIME] =
+        g_param_spec_float ("start-time",
+                            "Start Time",
+                            "Start Time",
+                            0, G_MAXFLOAT, 0,
+                            G_PARAM_READWRITE);
+
+    properties [PROP_END_TIME] =
+        g_param_spec_float ("end-time",
+                            "End Time",
+                            "End Time",
+                            0, G_MAXFLOAT, 0,
+                            G_PARAM_READWRITE);
+
+    g_object_class_install_properties (object_class, N_PROPS, properties);
 
     GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
 
@@ -267,9 +297,13 @@ cb_drag_end (GtkGestureDrag            *gesture,
     if (gtk_gesture_get_sequence_state (GTK_GESTURE (gesture), sequence) == GTK_EVENT_SEQUENCE_DENIED)
         return;
 
+    // Update Properties
     float clip_width = self->clip_timestamp_end - self->clip_timestamp_start;
     self->clip_timestamp_start = self->drag_current_x;
     self->clip_timestamp_end = self->drag_current_x + clip_width;
+
+    g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_START_TIME]);
+    g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_END_TIME]);
 
     self->drag_active = FALSE;
     self->drag_start_x = 0;
