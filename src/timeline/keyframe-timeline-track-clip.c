@@ -5,7 +5,13 @@ struct _KeyframeTimelineTrackClip
     KeyframeTimelineTrack parent_instance;
 
     GtkWidget *clip;
+    gboolean drag_active;
     float drag_start_x;
+    float drag_current_x;
+
+    // TODO: Make properties?
+    float clip_timestamp_start;
+    float clip_timestamp_end;
 };
 
 G_DEFINE_FINAL_TYPE (KeyframeTimelineTrackClip, keyframe_timeline_track_clip, KEYFRAME_TYPE_TIMELINE_TRACK)
@@ -16,6 +22,94 @@ enum {
 };
 
 static GParamSpec *properties [N_PROPS];
+
+
+
+// START LAYOUT MANAGER
+
+
+#define KEYFRAME_TYPE_TIMELINE_TRACK_CLIP_LAYOUT (keyframe_timeline_track_clip_layout_get_type())
+
+G_DECLARE_FINAL_TYPE (KeyframeTimelineTrackClipLayout, keyframe_timeline_track_clip_layout, KEYFRAME, TIMELINE_TRACK_CLIP_LAYOUT, GtkLayoutManager)
+
+struct _KeyframeTimelineTrackClipLayout
+{
+    GtkLayoutManager parent_instance;
+};
+
+G_DEFINE_FINAL_TYPE (KeyframeTimelineTrackClipLayout, keyframe_timeline_track_clip_layout, GTK_TYPE_LAYOUT_MANAGER)
+
+static void
+keyframe_timeline_track_clip_layout_measure (GtkLayoutManager *layout_manager,
+                                             GtkWidget        *widget,
+                                             GtkOrientation    orientation,
+                                             int               for_size,
+                                             int              *minimum,
+                                             int              *natural,
+                                             int              *minimum_baseline,
+                                             int              *natural_baseline)
+{
+    *minimum = 0;
+    *natural = 0;
+}
+
+static void
+keyframe_timeline_track_clip_layout_allocate (GtkLayoutManager *layout_manager,
+                                              GtkWidget        *widget,
+                                              int               width,
+                                              int               height,
+                                              int               baseline)
+{
+    KeyframeTimelineTrackClip *clip_track = KEYFRAME_TIMELINE_TRACK_CLIP (widget);
+
+    if (!gtk_widget_should_layout (clip_track->clip))
+        return;
+
+    float clip_width = clip_track->clip_timestamp_end - clip_track->clip_timestamp_start;
+
+    if (clip_track->drag_active)
+    {
+        gtk_widget_size_allocate (clip_track->clip,
+                              &(const GtkAllocation){ clip_track->drag_current_x, 0, clip_width, height },
+                              -1);
+    }
+    else
+    {
+        g_print ("%f %f\n", clip_track->clip_timestamp_start, clip_track->clip_timestamp_end);
+        gtk_widget_size_allocate (clip_track->clip,
+                              &(const GtkAllocation){ clip_track->clip_timestamp_start, 0, clip_width, height },
+                              -1);
+    }
+}
+
+static GtkSizeRequestMode
+keyframe_timeline_track_clip_layout_get_request_mode (GtkLayoutManager *layout_manager,
+                                                      GtkWidget        *widget)
+{
+    return GTK_SIZE_REQUEST_CONSTANT_SIZE;
+}
+
+static void
+keyframe_timeline_track_clip_layout_class_init (KeyframeTimelineTrackClipLayoutClass *klass)
+{
+    GtkLayoutManagerClass *layout_manager_class = GTK_LAYOUT_MANAGER_CLASS (klass);
+
+    layout_manager_class->measure = keyframe_timeline_track_clip_layout_measure;
+    layout_manager_class->allocate = keyframe_timeline_track_clip_layout_allocate;
+    layout_manager_class->get_request_mode = keyframe_timeline_track_clip_layout_get_request_mode;
+}
+
+static void
+keyframe_timeline_track_clip_layout_init (KeyframeTimelineTrackClipLayout *self)
+{
+
+}
+
+
+// END LAYOUT MANAGER
+
+
+
 
 GtkWidget *
 keyframe_timeline_track_clip_new (void)
@@ -74,7 +168,7 @@ keyframe_timeline_track_clip_class_init (KeyframeTimelineTrackClipClass *klass)
 
     GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
 
-    gtk_widget_class_set_layout_manager_type (widget_class, GTK_TYPE_FIXED_LAYOUT);
+    gtk_widget_class_set_layout_manager_type (widget_class, KEYFRAME_TYPE_TIMELINE_TRACK_CLIP_LAYOUT);
 }
 
 static void
@@ -83,14 +177,25 @@ cb_drag_begin (GtkGestureDrag            *gesture,
                gdouble                    start_y,
                KeyframeTimelineTrackClip *self)
 {
-    GtkLayoutManager *fixed = gtk_widget_get_layout_manager (GTK_WIDGET (self));
-    GtkFixedLayoutChild *fixed_child = GTK_FIXED_LAYOUT_CHILD (gtk_layout_manager_get_layout_child (fixed, self->clip));
+    double test_x = 0;
+    double test_y = 0;
+    gtk_widget_translate_coordinates (GTK_WIDGET (self),
+                                      self->clip,
+                                      start_x, start_y,
+                                      &test_x, &test_y);
 
-    GtkAllocation alloc;
-    gtk_widget_get_allocation (self->clip, &alloc);
-    self->drag_start_x = alloc.x;
+    // Only accept the gesture if the clip is being dragged
+    if (!gtk_widget_contains (self->clip, test_x, test_y))
+    {
+        GdkEventSequence *sequence = gtk_gesture_single_get_current_sequence (GTK_GESTURE_SINGLE (gesture));
+        gtk_gesture_set_sequence_state (GTK_GESTURE (gesture), sequence, GTK_EVENT_SEQUENCE_DENIED);
+        return;
+    }
 
-    g_print ("Drag Start!\n");
+    // TODO: Scaling/Zoom
+    self->drag_start_x = self->clip_timestamp_start;
+    self->drag_current_x = self->clip_timestamp_start;
+    self->drag_active = true;
 }
 
 static void
@@ -99,9 +204,8 @@ cb_drag_update (GtkGestureDrag            *gesture,
                 gdouble                    offset_y,
                 KeyframeTimelineTrackClip *self)
 {
-
-
-    g_print ("Drag Update! %f\n", offset_x);
+    self->drag_current_x = self->drag_start_x + offset_x;
+    gtk_widget_queue_allocate (GTK_WIDGET (self));
 }
 
 static void
@@ -110,14 +214,19 @@ cb_drag_end (GtkGestureDrag            *gesture,
              gdouble                    offset_y,
              KeyframeTimelineTrackClip *self)
 {
-    GtkLayoutManager *fixed = gtk_widget_get_layout_manager (GTK_WIDGET (self));
-    GtkFixedLayoutChild *fixed_child = GTK_FIXED_LAYOUT_CHILD (gtk_layout_manager_get_layout_child (fixed, self->clip));
+    GdkEventSequence *sequence = gtk_gesture_single_get_current_sequence (GTK_GESTURE_SINGLE (gesture));
+    if (gtk_gesture_get_sequence_state (GTK_GESTURE (gesture), sequence) == GTK_EVENT_SEQUENCE_DENIED)
+        return;
 
-    GskTransform *transform = gsk_transform_new ();
-    transform = gsk_transform_translate (transform, &GRAPHENE_POINT_INIT (self->drag_start_x + offset_x, 0));
-    gtk_fixed_layout_child_set_transform (fixed_child, transform);
+    float clip_width = self->clip_timestamp_end - self->clip_timestamp_start;
+    self->clip_timestamp_start = self->drag_current_x;
+    self->clip_timestamp_end = self->drag_current_x + clip_width;
 
-    g_print ("Drag End!\n");
+    self->drag_active = false;
+    self->drag_start_x = 0;
+    self->drag_current_x = 0;
+
+    gtk_widget_queue_allocate (GTK_WIDGET (self));
 }
 
 static void
@@ -127,17 +236,14 @@ keyframe_timeline_track_clip_init (KeyframeTimelineTrackClip *self)
     gtk_widget_set_parent (self->clip, GTK_WIDGET (self));
     gtk_widget_add_css_class (self->clip, "clip");
 
+    // TODO: Scaling/Zoom
+    self->clip_timestamp_start = 50;
+    self->clip_timestamp_end = 150;
+
     GtkGesture *drag_gesture = gtk_gesture_drag_new ();
-    gtk_widget_add_controller (self->clip, GTK_EVENT_CONTROLLER (drag_gesture));
+    gtk_widget_add_controller (self, GTK_EVENT_CONTROLLER (drag_gesture));
 
     g_signal_connect (drag_gesture, "drag-begin", G_CALLBACK (cb_drag_begin), self);
     g_signal_connect (drag_gesture, "drag-update", G_CALLBACK (cb_drag_update), self);
     g_signal_connect (drag_gesture, "drag-end", G_CALLBACK (cb_drag_end), self);
-
-    GtkLayoutManager *fixed = gtk_widget_get_layout_manager (GTK_WIDGET (self));
-    GtkFixedLayoutChild *fixed_child = GTK_FIXED_LAYOUT_CHILD (gtk_layout_manager_get_layout_child (fixed, self->clip));
-
-    GskTransform *transform = gsk_transform_new ();
-    transform = gsk_transform_translate (transform, &GRAPHENE_POINT_INIT (50, 0));
-    gtk_fixed_layout_child_set_transform (fixed_child, transform);
 }
