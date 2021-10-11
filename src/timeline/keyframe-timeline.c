@@ -338,6 +338,10 @@ keyframe_timeline_init (KeyframeTimeline *self)
     GtkWidget *colview = keyframe_timeline_column_view_new ();
     gtk_widget_set_vexpand (colview, TRUE);
     gtk_widget_set_hexpand (colview, TRUE);
-    gtk_widget_set_parent (colview, GTK_WIDGET (self));
     priv->col_view = colview;
+
+    GtkWidget *scroll_area = gtk_scrolled_window_new ();
+    gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroll_area), colview);
+    gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scroll_area), 200);
+    gtk_widget_set_parent (scroll_area, GTK_WIDGET (self));
 }

@@ -1,3 +1,23 @@
+/* keyframe-timeline-column-view.c
+ *
+ * Copyright 2021 Matthew Jakeman <mjakeman26@outlook.co.nz>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 #include "keyframe-timeline-column-view.h"
 
 #include "../model/keyframe-layers.h"
@@ -9,13 +29,44 @@
 typedef struct
 {
     GtkListView *list_view;
+    GtkWidget *header;
+
+    GtkAdjustment *hadjustment;
 } KeyframeTimelineColumnViewPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE (KeyframeTimelineColumnView, keyframe_timeline_column_view, GTK_TYPE_WIDGET)
+static void
+keyframe_timeline_column_view_scrollable_init (GtkScrollableInterface *iface);
+
+G_DEFINE_TYPE_WITH_CODE (KeyframeTimelineColumnView, keyframe_timeline_column_view, GTK_TYPE_WIDGET,
+                         G_ADD_PRIVATE (KeyframeTimelineColumnView)
+                         G_IMPLEMENT_INTERFACE (GTK_TYPE_SCROLLABLE,
+                                                keyframe_timeline_column_view_scrollable_init))
+
+static gboolean
+keyframe_timeline_column_view_scrollable_get_border (GtkScrollable *scrollable,
+                                                     GtkBorder     *border)
+{
+    KeyframeTimelineColumnView *self = KEYFRAME_TIMELINE_COLUMN_VIEW (scrollable);
+    KeyframeTimelineColumnViewPrivate *priv = keyframe_timeline_column_view_get_instance_private (self);
+
+    border->top = gtk_widget_get_height (priv->header);
+
+    return TRUE;
+}
+
+static void
+keyframe_timeline_column_view_scrollable_init (GtkScrollableInterface *iface)
+{
+    iface->get_border = keyframe_timeline_column_view_scrollable_get_border;
+}
 
 enum {
     PROP_0,
     PROP_MODEL,
+    PROP_HADJUSTMENT,
+    PROP_VADJUSTMENT,
+    PROP_HSCROLL_POLICY,
+    PROP_VSCROLL_POLICY,
     N_PROPS
 };
 
@@ -51,6 +102,7 @@ keyframe_timeline_column_view_dispose (GObject *object)
     KeyframeTimelineColumnViewPrivate *priv = keyframe_timeline_column_view_get_instance_private (self);
 
     g_clear_pointer (&priv->list_view, gtk_widget_unparent);
+    g_clear_pointer (&priv->header, gtk_widget_unparent);
 
     G_OBJECT_CLASS (keyframe_timeline_column_view_parent_class)->dispose (object);
 }
@@ -62,15 +114,36 @@ keyframe_timeline_column_view_get_property (GObject    *object,
                                             GParamSpec *pspec)
 {
     KeyframeTimelineColumnView *self = KEYFRAME_TIMELINE_COLUMN_VIEW (object);
+    KeyframeTimelineColumnViewPrivate *priv = keyframe_timeline_column_view_get_instance_private (self);
 
     switch (prop_id)
-      {
-      case PROP_MODEL:
-          return keyframe_timeline_column_view_get_model (self);
+    {
+        case PROP_MODEL:
+            g_value_set_object (value, keyframe_timeline_column_view_get_model (self));
+            break;
+        case PROP_HADJUSTMENT:
+            g_value_set_object (value, priv->hadjustment);
+            break;
+        case PROP_HSCROLL_POLICY:
+            // TODO: Should this be never?
+            g_value_set_enum (value, GTK_SCROLL_NATURAL);
+            break;
+        case PROP_VADJUSTMENT:
+            GtkAdjustment *vadj = gtk_scrollable_get_vadjustment (GTK_SCROLLABLE (priv->list_view));
+            g_value_set_object (value, vadj);
+            break;
+        case PROP_VSCROLL_POLICY:
+            GtkScrollablePolicy scroll_policy = gtk_scrollable_get_vscroll_policy (GTK_SCROLLABLE (priv->list_view));
+            g_value_set_enum (value, scroll_policy);
+            break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       }
 }
+
+static void
+cb_adjustment_changed (KeyframeTimelineColumnView *self,
+                       GtkAdjustment              *adj);
 
 static void
 keyframe_timeline_column_view_set_property (GObject      *object,
@@ -79,16 +152,59 @@ keyframe_timeline_column_view_set_property (GObject      *object,
                                             GParamSpec   *pspec)
 {
     KeyframeTimelineColumnView *self = KEYFRAME_TIMELINE_COLUMN_VIEW (object);
+    KeyframeTimelineColumnViewPrivate *priv = keyframe_timeline_column_view_get_instance_private (self);
 
     switch (prop_id)
-      {
-      case PROP_MODEL:
-          GtkSelectionModel *model = g_value_get_object (value);
-          keyframe_timeline_column_view_set_model (self, model);
-          break;
-      default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      }
+    {
+        case PROP_MODEL:
+            GtkSelectionModel *model = g_value_get_object (value);
+            keyframe_timeline_column_view_set_model (self, model);
+            break;
+        case PROP_HADJUSTMENT:
+            priv->hadjustment = g_value_get_object (value);
+            if (priv->hadjustment)
+            {
+                g_signal_connect_swapped (priv->hadjustment, "value-changed",
+                                          G_CALLBACK (cb_adjustment_changed), self);
+            }
+            break;
+        case PROP_HSCROLL_POLICY:
+            // Do nothing
+            break;
+        case PROP_VADJUSTMENT:
+            GtkAdjustment *vadj = g_value_get_object (value);
+            gtk_scrollable_set_vadjustment (GTK_SCROLLABLE (priv->list_view), vadj);
+            break;
+        case PROP_VSCROLL_POLICY:
+            GtkScrollablePolicy scroll_policy = g_value_get_enum (value);
+            gtk_scrollable_set_vscroll_policy (GTK_SCROLLABLE (priv->list_view), scroll_policy);
+            break;
+        default:
+            G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    }
+}
+
+static void
+keyframe_timeline_column_view_allocate (GtkWidget *widget,
+                                        int        width,
+                                        int        height,
+                                        int        baseline)
+{
+    KeyframeTimelineColumnView *self = KEYFRAME_TIMELINE_COLUMN_VIEW (widget);
+    KeyframeTimelineColumnViewPrivate *priv = keyframe_timeline_column_view_get_instance_private (self);
+
+    // Split allocation between header and listview widget
+    int preferred_header_height;
+    gtk_widget_measure (priv->header, GTK_ORIENTATION_VERTICAL, width,
+                        NULL, &preferred_header_height, NULL, NULL);
+
+    gtk_widget_size_allocate (priv->header,
+                              &(const GtkAllocation){ 0, 0, width, preferred_header_height},
+                              -1);
+
+    gtk_widget_size_allocate (GTK_WIDGET (priv->list_view),
+                              &(const GtkAllocation){ 0, preferred_header_height, width, height - preferred_header_height},
+                              -1);
 }
 
 static void
@@ -101,13 +217,40 @@ keyframe_timeline_column_view_class_init (KeyframeTimelineColumnViewClass *klass
     object_class->get_property = keyframe_timeline_column_view_get_property;
     object_class->set_property = keyframe_timeline_column_view_set_property;
 
-    GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
+    gpointer iface = g_type_default_interface_peek (GTK_TYPE_SCROLLABLE);
 
-    gtk_widget_class_set_css_name (widget_class, "timeline");
+    properties[PROP_VADJUSTMENT] =
+        g_param_spec_override ("vadjustment",
+                               g_object_interface_find_property (iface, "vadjustment"));
 
-    properties [PROP_MODEL] = g_param_spec_object ("model", "Model", "Model", GTK_TYPE_SELECTION_MODEL, G_PARAM_READWRITE);
+    properties[PROP_HADJUSTMENT] =
+        g_param_spec_override ("hadjustment",
+                               g_object_interface_find_property (iface, "hadjustment"));
+
+    properties[PROP_VSCROLL_POLICY] =
+        g_param_spec_override ("vscroll-policy",
+                               g_object_interface_find_property (iface, "vscroll-policy"));
+
+    properties[PROP_HSCROLL_POLICY] =
+        g_param_spec_override ("hscroll-policy",
+                               g_object_interface_find_property (iface, "hscroll-policy"));
+
+
+    properties [PROP_MODEL] =
+        g_param_spec_object ("model",
+                             "Model",
+                             "Model",
+                             GTK_TYPE_SELECTION_MODEL,
+                             G_PARAM_READWRITE);
 
     g_object_class_install_properties (object_class, N_PROPS, properties);
+
+    GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
+
+    widget_class->size_allocate = keyframe_timeline_column_view_allocate;
+
+    gtk_widget_class_set_css_name (widget_class, "timeline");
+    // gtk_widget_class_set_layout_manager_type (widget_class, GTK_TYPE_BOX_LAYOUT);
 }
 
 static void
@@ -211,6 +354,14 @@ keyframe_timeline_column_view_set_model (KeyframeTimelineColumnView *self,
     g_object_notify_by_pspec (G_OBJECT (self), properties [PROP_MODEL]);
 }
 
+
+static void
+cb_adjustment_changed (KeyframeTimelineColumnView *self,
+                       GtkAdjustment              *adj)
+{
+
+}
+
 GtkSelectionModel *
 keyframe_timeline_column_view_get_model (KeyframeTimelineColumnView *self)
 {
@@ -227,22 +378,15 @@ keyframe_timeline_column_view_init (KeyframeTimelineColumnView *self)
     g_signal_connect (factory, "setup", G_CALLBACK (setup_listitem_cb), self);
     g_signal_connect (factory, "bind", G_CALLBACK (bind_listitem_cb), self);
 
-    GtkWidget *vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-    gtk_widget_set_parent (vbox, GTK_WIDGET (self));
-    gtk_widget_set_layout_manager (GTK_WIDGET (self), gtk_bin_layout_new ());
-
     GtkWidget *header = keyframe_timeline_header_new ();
-    gtk_box_append (GTK_BOX (vbox), header);
+    gtk_widget_set_parent (header, GTK_WIDGET (self));
+    priv->header = header;
 
     GtkWidget *list_view = gtk_list_view_new (NULL, factory);
     gtk_widget_set_vexpand (list_view, TRUE);
     gtk_widget_set_hexpand (list_view, TRUE);
+    gtk_widget_set_parent (list_view, GTK_WIDGET (self));
     priv->list_view = GTK_LIST_VIEW (list_view);
-
-    GtkWidget *scroll_area = gtk_scrolled_window_new ();
-    gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroll_area), list_view);
-    gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scroll_area), 200);
-    gtk_box_append (GTK_BOX (vbox), scroll_area);
 
     // TODO: Accessibility Support
     // Since we're using out own columnview-like implementation, accessibility
