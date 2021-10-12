@@ -204,6 +204,15 @@ keyframe_timeline_column_view_allocate (GtkWidget *widget,
     gtk_widget_size_allocate (GTK_WIDGET (priv->list_view),
                               &(const GtkAllocation){ 0, preferred_header_height, width, height - preferred_header_height},
                               -1);
+
+    // Update hadjustment
+    if (priv->hadjustment)
+    {
+        gtk_adjustment_set_upper (priv->hadjustment, 5000);
+        gtk_adjustment_set_step_increment (priv->hadjustment, 10);
+        gtk_adjustment_set_page_increment (priv->hadjustment, 50);
+        gtk_adjustment_set_page_size (priv->hadjustment, width);
+    }
 }
 
 static void
