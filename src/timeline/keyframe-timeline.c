@@ -12,7 +12,7 @@
 typedef struct
 {
     // For dispose
-    // GtkWidget *sw;
+    GtkWidget *scroll_area;
 
     GtkWidget *slider;
     GtkWidget *col_view;
@@ -55,7 +55,8 @@ keyframe_timeline_finalize (GObject *object)
     KeyframeTimeline *self = (KeyframeTimeline *)object;
     KeyframeTimelinePrivate *priv = keyframe_timeline_get_instance_private (self);
 
-    // gtk_widget_unparent (priv->sw);
+    g_clear_pointer (&priv->col_view, gtk_widget_unparent);
+    g_clear_pointer (&priv->scroll_area, gtk_widget_unparent);
 
     G_OBJECT_CLASS (keyframe_timeline_parent_class)->finalize (object);
 }
@@ -344,4 +345,5 @@ keyframe_timeline_init (KeyframeTimeline *self)
     gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroll_area), colview);
     gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scroll_area), 200);
     gtk_widget_set_parent (scroll_area, GTK_WIDGET (self));
+    priv->scroll_area = scroll_area;
 }

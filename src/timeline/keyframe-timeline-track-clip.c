@@ -12,6 +12,8 @@ struct _KeyframeTimelineTrackClip
     // TODO: Make properties?
     float clip_timestamp_start;
     float clip_timestamp_end;
+
+    float start_position;
 };
 
 G_DEFINE_FINAL_TYPE (KeyframeTimelineTrackClip, keyframe_timeline_track_clip, KEYFRAME_TYPE_TIMELINE_TRACK)
@@ -119,14 +121,14 @@ keyframe_timeline_track_clip_layout_allocate (GtkLayoutManager *layout_manager,
     if (clip_track->drag_active)
     {
         gtk_widget_size_allocate (clip_track->clip,
-                              &(const GtkAllocation){ clip_track->drag_current_x, 0, clip_width, height },
+                              &(const GtkAllocation){ clip_track->drag_current_x - clip_track->start_position, 0, clip_width, height },
                               -1);
     }
     else
     {
         g_print ("%f %f\n", clip_track->clip_timestamp_start, clip_track->clip_timestamp_end);
         gtk_widget_size_allocate (clip_track->clip,
-                              &(const GtkAllocation){ clip_track->clip_timestamp_start, 0, clip_width, height },
+                              &(const GtkAllocation){ clip_track->clip_timestamp_start - clip_track->start_position, 0, clip_width, height },
                               -1);
     }
 }
@@ -219,8 +221,26 @@ keyframe_timeline_track_clip_set_property (GObject      *object,
 }
 
 static void
+keyframe_timeline_track_clip_adjustment_changed (KeyframeTimelineTrack *self,
+                                                 GtkAdjustment         *adj)
+{
+    if (!GTK_IS_WIDGET (self))
+    {
+        g_critical ("TrackClip is invalid.");
+        return;
+    }
+    KeyframeTimelineTrackClip *clip_track = KEYFRAME_TIMELINE_TRACK_CLIP (self);
+    clip_track->start_position = gtk_adjustment_get_value (adj);
+    gtk_widget_queue_allocate (GTK_WIDGET (self));
+}
+
+static void
 keyframe_timeline_track_clip_class_init (KeyframeTimelineTrackClipClass *klass)
 {
+    KeyframeTimelineTrackClass *track_class = KEYFRAME_TIMELINE_TRACK_CLASS (klass);
+
+    track_class->adjustment_changed = keyframe_timeline_track_clip_adjustment_changed;
+
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->finalize = keyframe_timeline_track_clip_finalize;

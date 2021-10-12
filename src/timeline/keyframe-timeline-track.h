@@ -11,9 +11,13 @@ G_DECLARE_DERIVABLE_TYPE (KeyframeTimelineTrack, keyframe_timeline_track, KEYFRA
 struct _KeyframeTimelineTrackClass
 {
   GtkWidgetClass parent_class;
+  void (*adjustment_changed)(KeyframeTimelineTrack *self, GtkAdjustment *adj);
 };
 
 GtkWidget *keyframe_timeline_track_new (void);
+
+float
+keyframe_timeline_track_get_start_pos (KeyframeTimelineTrack *self);
 
 G_END_DECLS
 

@@ -1,23 +1,3 @@
-/* keyframe-timeline-column-view.c
- *
- * Copyright 2021 Matthew Jakeman <mjakeman26@outlook.co.nz>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * SPDX-License-Identifier: GPL-3.0-or-later
- */
-
 #include "keyframe-timeline-column-view.h"
 
 #include "../model/keyframe-layers.h"
@@ -32,6 +12,7 @@ typedef struct
     GtkWidget *header;
 
     GtkAdjustment *hadjustment;
+    float start_pos;
 } KeyframeTimelineColumnViewPrivate;
 
 static void
@@ -63,6 +44,7 @@ keyframe_timeline_column_view_scrollable_init (GtkScrollableInterface *iface)
 enum {
     PROP_0,
     PROP_MODEL,
+    PROP_START_POSITION,
     PROP_HADJUSTMENT,
     PROP_VADJUSTMENT,
     PROP_HSCROLL_POLICY,
@@ -101,6 +83,7 @@ keyframe_timeline_column_view_dispose (GObject *object)
     KeyframeTimelineColumnView *self = (KeyframeTimelineColumnView *)object;
     KeyframeTimelineColumnViewPrivate *priv = keyframe_timeline_column_view_get_instance_private (self);
 
+    g_clear_pointer (&priv->hadjustment, g_object_unref);
     g_clear_pointer (&priv->list_view, gtk_widget_unparent);
     g_clear_pointer (&priv->header, gtk_widget_unparent);
 
@@ -120,6 +103,11 @@ keyframe_timeline_column_view_get_property (GObject    *object,
     {
         case PROP_MODEL:
             g_value_set_object (value, keyframe_timeline_column_view_get_model (self));
+            break;
+        case PROP_START_POSITION:
+            // TODO: This might end up being too slow
+            // Look at alternate means e.g. sharing an hadjustment
+            g_value_set_float (value, priv->start_pos);
             break;
         case PROP_HADJUSTMENT:
             g_value_set_object (value, priv->hadjustment);
@@ -164,6 +152,17 @@ keyframe_timeline_column_view_set_property (GObject      *object,
             priv->hadjustment = g_value_get_object (value);
             if (priv->hadjustment)
             {
+                g_object_ref_sink (priv->hadjustment);
+
+                // TODO: Update/Assign these values properly
+                g_object_set (priv->hadjustment,
+                              "lower", 0,
+                              "upper", 5000,
+                              "step-increment", 10,
+                              "page-increment", 50,
+                              "page-size", 50,
+                              NULL);
+
                 g_signal_connect_swapped (priv->hadjustment, "value-changed",
                                           G_CALLBACK (cb_adjustment_changed), self);
             }
@@ -243,6 +242,13 @@ keyframe_timeline_column_view_class_init (KeyframeTimelineColumnViewClass *klass
                              GTK_TYPE_SELECTION_MODEL,
                              G_PARAM_READWRITE);
 
+    properties [PROP_START_POSITION] =
+        g_param_spec_float ("start-position",
+                            "Start Position",
+                            "Start Position",
+                            0, G_MAXFLOAT, 0,
+                            G_PARAM_READABLE);
+
     g_object_class_install_properties (object_class, N_PROPS, properties);
 
     GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
@@ -276,9 +282,9 @@ setup_listitem_cb (GtkListItemFactory *factory,
 }
 
 static void
-bind_listitem_cb (GtkListItemFactory *factory,
-                  GtkListItem        *list_item,
-                  gpointer            user_data)
+bind_listitem_cb (GtkListItemFactory         *factory,
+                  GtkListItem                *list_item,
+                  KeyframeTimelineColumnView *self)
 {
     GtkWidget *channel = gtk_list_item_get_child (list_item);
     GtkTreeListRow *row = GTK_TREE_LIST_ROW (gtk_list_item_get_item (list_item));
@@ -304,6 +310,8 @@ bind_listitem_cb (GtkListItemFactory *factory,
                                 G_BINDING_BIDIRECTIONAL|G_BINDING_SYNC_CREATE);
         g_object_bind_property (bind_obj, "end-time", track, "end-time",
                                 G_BINDING_BIDIRECTIONAL|G_BINDING_SYNC_CREATE);
+        g_object_bind_property (self, "hadjustment", track, "adjustment",
+                                G_BINDING_DEFAULT|G_BINDING_SYNC_CREATE);
         keyframe_timeline_channel_set_track (KEYFRAME_TIMELINE_CHANNEL (channel),
                                              KEYFRAME_TIMELINE_TRACK (track));
 
@@ -359,7 +367,11 @@ static void
 cb_adjustment_changed (KeyframeTimelineColumnView *self,
                        GtkAdjustment              *adj)
 {
-
+    KeyframeTimelineColumnViewPrivate *priv = keyframe_timeline_column_view_get_instance_private (self);
+    // TODO: Maybe centre position instead of start?
+    priv->start_pos = gtk_adjustment_get_value (adj);
+    g_object_notify_by_pspec (G_OBJECT (self), properties [PROP_START_POSITION]);
+    g_print ("%f\n", priv->start_pos);
 }
 
 GtkSelectionModel *
