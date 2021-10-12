@@ -1,6 +1,8 @@
 #include "keyframe-timeline-column-view.h"
 
 #include "../model/keyframe-layers.h"
+#include "../model/keyframe-value-float.h"
+
 #include "keyframe-timeline-property.h"
 #include "keyframe-timeline-header.h"
 #include "keyframe-timeline-channel.h"
@@ -339,13 +341,18 @@ bind_listitem_cb (GtkListItemFactory         *factory,
                       "param-spec", &param,
                       NULL);
 
-        // TODO: Maybe set the track type rather than the widget
-        // That way we can only recreate it if the list row type has changed
-        GtkWidget *track = keyframe_timeline_track_new ();
-        keyframe_timeline_channel_set_track (channel, track);
-
         gtk_label_set_label (GTK_LABEL (label), g_param_spec_get_nick (param));
         gtk_widget_set_tooltip_text (label, g_param_spec_get_blurb (param));
+
+        // Setup Track
+        GtkWidget *track;
+        if (param->value_type == KEYFRAME_TYPE_VALUE_FLOAT)
+            track = keyframe_timeline_track_frame_new ();
+        else
+            track = keyframe_timeline_track_new ();
+
+        keyframe_timeline_channel_set_track (KEYFRAME_TIMELINE_CHANNEL (channel),
+                                             KEYFRAME_TIMELINE_TRACK (track));
     }
 
     int depth = gtk_tree_list_row_get_depth (row);
