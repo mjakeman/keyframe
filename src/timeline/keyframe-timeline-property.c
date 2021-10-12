@@ -1,8 +1,5 @@
 #include "keyframe-timeline-property.h"
 
-#include "../model/keyframe-layers.h"
-#include "../model/keyframe-value-float.h"
-
 // As our keyframes are boxed types, create
 // a GObject to wrap them for displaying in
 // the timeline.
@@ -14,7 +11,6 @@ struct _KeyframeTimelineProperty
     // Probably not, it's a bit messy
     KeyframeLayer *layer;
     GParamSpec *param_spec;
-    KeyframeValueFloat *keyframe_set;
 };
 
 G_DEFINE_FINAL_TYPE (KeyframeTimelineProperty, keyframe_timeline_property, G_TYPE_OBJECT)
@@ -22,16 +18,18 @@ G_DEFINE_FINAL_TYPE (KeyframeTimelineProperty, keyframe_timeline_property, G_TYP
 enum {
     PROP_0,
     PROP_PARAM_SPEC,
+    PROP_LAYER,
     N_PROPS
 };
 
 static GParamSpec *properties [N_PROPS];
 
 KeyframeTimelineProperty *
-keyframe_timeline_property_new (GParamSpec *param_spec)
+keyframe_timeline_property_new (GParamSpec *param_spec, KeyframeLayer *layer)
 {
     return g_object_new (KEYFRAME_TYPE_TIMELINE_PROPERTY,
                          "param-spec", param_spec,
+                         "layer", layer,
                          NULL);
 }
 
@@ -56,6 +54,9 @@ keyframe_timeline_property_get_property (GObject    *object,
       case PROP_PARAM_SPEC:
           g_value_set_param (value, self->param_spec);
           break;
+      case PROP_LAYER:
+          g_value_set_object (value, self->layer);
+          break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       }
@@ -74,6 +75,9 @@ keyframe_timeline_property_set_property (GObject      *object,
       case PROP_PARAM_SPEC:
           self->param_spec = g_value_get_param (value);
           break;
+      case PROP_LAYER:
+          self->layer = g_value_get_object (value);
+          break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       }
@@ -90,6 +94,9 @@ keyframe_timeline_property_class_init (KeyframeTimelinePropertyClass *klass)
 
     properties [PROP_PARAM_SPEC]
         = g_param_spec_param ("param-spec", "Param Spec", "Param Spec", G_TYPE_PARAM, G_PARAM_READWRITE|G_PARAM_CONSTRUCT);
+
+    properties [PROP_LAYER]
+        = g_param_spec_object ("layer", "Layer", "Layer", KEYFRAME_TYPE_LAYER, G_PARAM_READWRITE|G_PARAM_CONSTRUCT);
 
     g_object_class_install_properties (object_class, N_PROPS, properties);
 }

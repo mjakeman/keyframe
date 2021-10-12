@@ -1,8 +1,12 @@
 #include "keyframe-timeline-track-frame.h"
 
+#include "../model/keyframe-value-float.h"
+
 struct _KeyframeTimelineTrackFrame
 {
     KeyframeTimelineTrack parent_instance;
+
+    KeyframeValueFloat *float_value;
 
     gboolean drag_active;
     float drag_start_x;
@@ -15,8 +19,7 @@ G_DEFINE_FINAL_TYPE (KeyframeTimelineTrackFrame, keyframe_timeline_track_frame, 
 
 enum {
     PROP_0,
-    PROP_START_TIME,
-    PROP_END_TIME,
+    PROP_FLOAT_VALUE,
     N_PROPS
 };
 
@@ -61,7 +64,7 @@ keyframe_timeline_track_frame_layout_allocate (GtkLayoutManager *layout_manager,
 {
     KeyframeTimelineTrackFrame *frame_track = KEYFRAME_TIMELINE_TRACK_FRAME (widget);
 
-    g_print ("Allocating Keyframe Track");
+    g_print ("Allocating Keyframe Track\n");
 }
 
 static GtkSizeRequestMode
@@ -104,6 +107,9 @@ keyframe_timeline_track_frame_finalize (GObject *object)
 {
     KeyframeTimelineTrackFrame *self = (KeyframeTimelineTrackFrame *)object;
 
+    if (self->float_value)
+        g_boxed_free (KEYFRAME_TYPE_VALUE_FLOAT, self->float_value);
+
     G_OBJECT_CLASS (keyframe_timeline_track_frame_parent_class)->finalize (object);
 }
 
@@ -117,6 +123,9 @@ keyframe_timeline_track_frame_get_property (GObject    *object,
 
     switch (prop_id)
     {
+        case PROP_FLOAT_VALUE:
+            g_value_set_boxed (value, self->float_value);
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
@@ -124,14 +133,23 @@ keyframe_timeline_track_frame_get_property (GObject    *object,
 
 static void
 keyframe_timeline_track_frame_set_property (GObject      *object,
-                                           guint         prop_id,
-                                           const GValue *value,
-                                           GParamSpec   *pspec)
+                                            guint         prop_id,
+                                            const GValue *value,
+                                            GParamSpec   *pspec)
 {
     KeyframeTimelineTrackFrame *self = KEYFRAME_TIMELINE_TRACK_FRAME (object);
 
     switch (prop_id)
     {
+        case PROP_FLOAT_VALUE:
+            if (self->float_value)
+                g_boxed_free (KEYFRAME_TYPE_VALUE_FLOAT, self->float_value);
+
+            // TODO: Rename to something like `value_float_ref()`
+            self->float_value = g_boxed_copy (KEYFRAME_TYPE_VALUE_FLOAT, g_value_get_boxed (value));
+            gtk_widget_queue_allocate (GTK_WIDGET (self));
+            gtk_widget_queue_draw (GTK_WIDGET (self));
+            break;
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
@@ -141,6 +159,7 @@ static void
 keyframe_timeline_track_frame_adjustment_changed (KeyframeTimelineTrack *self,
                                                   GtkAdjustment         *adj)
 {
+    g_print ("Adjustment Changed?\n");
     if (!GTK_IS_WIDGET (self))
     {
         g_critical ("TrackFrame is invalid.");
@@ -149,6 +168,39 @@ keyframe_timeline_track_frame_adjustment_changed (KeyframeTimelineTrack *self,
     KeyframeTimelineTrackFrame *frame_track = KEYFRAME_TIMELINE_TRACK_FRAME (self);
     frame_track->start_position = gtk_adjustment_get_value (adj);
     gtk_widget_queue_allocate (GTK_WIDGET (self));
+    gtk_widget_queue_draw (GTK_WIDGET (self));
+}
+
+static void
+test_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
+{
+    GtkAllocation allocation;
+    gtk_widget_get_allocation (widget, &allocation);
+
+    KeyframeTimelineTrackFrame *self = KEYFRAME_TIMELINE_TRACK_FRAME (widget);
+
+    if (!self->float_value)
+        return;
+
+    // TODO: Check static before obtaining keyframes
+    // There should be some sort of check inside `get_keyframes()` so we don't crash
+    GSList *keyframes = keyframe_value_float_get_keyframes (self->float_value);
+
+    int dim = gtk_widget_get_height (widget);
+
+    for (GSList *l = keyframes; l != NULL; l = l->next)
+    {
+        KeyframeValueFloatPair *frame = l->data;
+
+        float x = frame->timestamp - self->start_position;
+        float y = 0;
+        float w = dim, h = dim;
+
+        g_print ("Drawing Keyframe\n");
+        GdkRGBA colour;
+        gdk_rgba_parse (&colour, "cyan");
+        gtk_snapshot_append_color (snapshot, &colour, &GRAPHENE_RECT_INIT (x, y, w, h));
+    }
 }
 
 static void
@@ -164,9 +216,18 @@ keyframe_timeline_track_frame_class_init (KeyframeTimelineTrackFrameClass *klass
     object_class->get_property = keyframe_timeline_track_frame_get_property;
     object_class->set_property = keyframe_timeline_track_frame_set_property;
 
-    // g_object_class_install_properties (object_class, N_PROPS, properties);
+    properties [PROP_FLOAT_VALUE]
+        = g_param_spec_boxed ("float-value",
+                              "Float Value",
+                              "Float Value",
+                              KEYFRAME_TYPE_VALUE_FLOAT,
+                              G_PARAM_READWRITE);
+
+    g_object_class_install_properties (object_class, N_PROPS, properties);
 
     GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
+
+    widget_class->snapshot = test_snapshot;
 
     gtk_widget_class_set_layout_manager_type (widget_class, KEYFRAME_TYPE_TIMELINE_TRACK_FRAME_LAYOUT);
 }

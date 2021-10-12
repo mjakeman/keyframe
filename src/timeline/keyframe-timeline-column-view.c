@@ -309,6 +309,7 @@ bind_listitem_cb (GtkListItemFactory         *factory,
 
     GtkWidget *label = gtk_tree_expander_get_child (expander);
 
+    GtkWidget *track;
     if (KEYFRAME_IS_LAYER (bind_obj))
     {
         g_object_bind_property (bind_obj, "name", label, "label",
@@ -316,15 +317,11 @@ bind_listitem_cb (GtkListItemFactory         *factory,
         g_object_bind_property (bind_obj, "visible", checkbox, "active",
                                 G_BINDING_BIDIRECTIONAL|G_BINDING_SYNC_CREATE);
 
-        GtkWidget *track = keyframe_timeline_track_clip_new ();
+        track = keyframe_timeline_track_clip_new ();
         g_object_bind_property (bind_obj, "start-time", track, "start-time",
                                 G_BINDING_BIDIRECTIONAL|G_BINDING_SYNC_CREATE);
         g_object_bind_property (bind_obj, "end-time", track, "end-time",
                                 G_BINDING_BIDIRECTIONAL|G_BINDING_SYNC_CREATE);
-        g_object_bind_property (self, "hadjustment", track, "adjustment",
-                                G_BINDING_DEFAULT|G_BINDING_SYNC_CREATE);
-        keyframe_timeline_channel_set_track (KEYFRAME_TIMELINE_CHANNEL (channel),
-                                             KEYFRAME_TIMELINE_TRACK (track));
 
         char *layer_type;
         g_object_get (bind_obj,
@@ -336,24 +333,35 @@ bind_listitem_cb (GtkListItemFactory         *factory,
     }
     else if (KEYFRAME_IS_TIMELINE_PROPERTY (bind_obj))
     {
+        KeyframeLayer *layer;
+
         GParamSpec *param;
         g_object_get (bind_obj,
                       "param-spec", &param,
+                      "layer", &layer,
                       NULL);
 
         gtk_label_set_label (GTK_LABEL (label), g_param_spec_get_nick (param));
         gtk_widget_set_tooltip_text (label, g_param_spec_get_blurb (param));
 
         // Setup Track
-        GtkWidget *track;
         if (param->value_type == KEYFRAME_TYPE_VALUE_FLOAT)
+        {
             track = keyframe_timeline_track_frame_new ();
+            g_object_bind_property (layer, g_param_spec_get_name (param),
+                                    track, "float-value",
+                                    G_BINDING_BIDIRECTIONAL|G_BINDING_SYNC_CREATE);
+        }
         else
+        {
             track = keyframe_timeline_track_new ();
-
-        keyframe_timeline_channel_set_track (KEYFRAME_TIMELINE_CHANNEL (channel),
-                                             KEYFRAME_TIMELINE_TRACK (track));
+        }
     }
+
+    g_object_bind_property (self, "hadjustment", track, "adjustment",
+                                G_BINDING_DEFAULT|G_BINDING_SYNC_CREATE);
+    keyframe_timeline_channel_set_track (KEYFRAME_TIMELINE_CHANNEL (channel),
+                                         KEYFRAME_TIMELINE_TRACK (track));
 
     int depth = gtk_tree_list_row_get_depth (row);
     gtk_widget_remove_css_class (GTK_WIDGET (channel), "channel-depth-0");

@@ -1,11 +1,5 @@
 #include "keyframe-value-float.h"
 
-typedef struct
-{
-    float timestamp;
-    float value;
-} KeyframeValueFloatPair;
-
 struct KeyframeValueFloat_
 {
     gboolean use_keyframes;
@@ -17,10 +11,11 @@ struct KeyframeValueFloat_
 };
 
 static gpointer
-keyframe_value_copy (KeyframeValueFloat *boxed)
+keyframe_value_copy (gpointer boxed)
 {
-    g_ref_count_inc (&boxed->ref_count);
-    return boxed;
+    KeyframeValueFloat *value = (KeyframeValueFloat *)boxed;
+    g_ref_count_inc (&value->ref_count);
+    return value;
 }
 
 static void
@@ -29,20 +24,7 @@ keyframe_value_free (KeyframeValueFloat *boxed)
     g_ref_count_dec (&boxed->ref_count);
 }
 
-// G_DEFINE_BOXED_TYPE (KeyframeValueFloat, keyframe_value_float, keyframe_value_copy, keyframe_value_free);
-
-GType
-keyframe_value_float_get_type ()
-{
-    static GType typeid = 0;
-    if (typeid == 0)
-    {
-        typeid = g_boxed_type_register_static ("KeyframeValueFloat",
-                                               keyframe_value_copy,
-                                               keyframe_value_free);
-    }
-    return typeid;
-}
+G_DEFINE_BOXED_TYPE (KeyframeValueFloat, keyframe_value_float, keyframe_value_copy, keyframe_value_free);
 
 KeyframeValueFloat *keyframe_value_float_new (float val)
 {
@@ -158,6 +140,12 @@ keyframe_value_float_set_dynamic_test_data (KeyframeValueFloat *self)
     push_keyframe (self, 400.0f, 300.0f);
     push_keyframe (self, 500.0f, 600.0f);
     push_keyframe (self, 1000.0f, 1920.0f);
+}
+
+GSList *
+keyframe_value_float_get_keyframes (KeyframeValueFloat *self)
+{
+    return self->keyframes;
 }
 
 void

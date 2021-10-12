@@ -126,7 +126,7 @@ create_layers_tree (gpointer layer_ptr, gpointer unused)
 
     for (guint i = 0; i < n_props; i++)
     {
-        KeyframeTimelineProperty *prop = keyframe_timeline_property_new (params[i]);
+        KeyframeTimelineProperty *prop = keyframe_timeline_property_new (params[i], layer);
         g_list_store_append (G_LIST_STORE (model), prop);
     }
 

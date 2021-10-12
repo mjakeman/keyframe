@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glib-object.h>
+#include "../model/keyframe-layers.h"
 
 G_BEGIN_DECLS
 
@@ -9,6 +10,6 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE (KeyframeTimelineProperty, keyframe_timeline_property, KEYFRAME, TIMELINE_PROPERTY, GObject)
 
 KeyframeTimelineProperty *
-keyframe_timeline_property_new (GParamSpec *param_spec);
+keyframe_timeline_property_new (GParamSpec *param_spec, KeyframeLayer *layer);
 
 G_END_DECLS
