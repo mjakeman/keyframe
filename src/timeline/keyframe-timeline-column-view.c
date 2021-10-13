@@ -33,6 +33,7 @@ keyframe_timeline_column_view_scrollable_get_border (GtkScrollable *scrollable,
     KeyframeTimelineColumnViewPrivate *priv = keyframe_timeline_column_view_get_instance_private (self);
 
     border->top = gtk_widget_get_height (priv->header);
+    border->left = 400; // TODO: Don't hardcode
 
     return TRUE;
 }

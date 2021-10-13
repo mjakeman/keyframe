@@ -93,8 +93,7 @@ static void
 keyframe_timeline_track_adjustment_changed (KeyframeTimelineTrack *self,
                                             GtkAdjustment         *adj)
 {
-    g_critical ("%s does not implement virtual method 'adjustment_changed()'.",
-                g_type_name_from_instance ((GTypeInstance *)self));
+    // Do nothing
 }
 
 static void
