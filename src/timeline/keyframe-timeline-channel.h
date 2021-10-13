@@ -2,7 +2,7 @@
 
 #include <gtk/gtk.h>
 
-#include "keyframe-timeline-track.h"
+#include "keyframe-track.h"
 
 G_BEGIN_DECLS
 
@@ -15,9 +15,9 @@ GtkWidget *keyframe_timeline_channel_get_info_box (KeyframeTimelineChannel *self
 
 void
 keyframe_timeline_channel_set_track (KeyframeTimelineChannel *self,
-                                     KeyframeTimelineTrack   *track);
+                                     KeyframeTrack   *track);
 
-KeyframeTimelineTrack *
+KeyframeTrack *
 keyframe_timeline_channel_get_track (KeyframeTimelineChannel *self);
 
 G_END_DECLS

@@ -66,7 +66,7 @@ keyframe_timeline_channel_set_property (GObject      *object,
     switch (prop_id)
     {
     case PROP_TRACK:
-        KeyframeTimelineTrack *track = g_value_get_object (value);
+        KeyframeTrack *track = g_value_get_object (value);
         keyframe_timeline_channel_set_track (self, track);
         break;
     default:
@@ -88,7 +88,7 @@ keyframe_timeline_channel_class_init (KeyframeTimelineChannelClass *klass)
     gtk_widget_class_set_css_name (widget_class, "channel");
 
     properties [PROP_TRACK] = g_param_spec_object ("track", "Track", "Track",
-                                                   KEYFRAME_TYPE_TIMELINE_TRACK,
+                                                   KEYFRAME_TYPE_TRACK,
                                                    G_PARAM_READWRITE);
 
     g_object_class_install_properties (object_class, N_PROPS, properties);
@@ -97,14 +97,14 @@ keyframe_timeline_channel_class_init (KeyframeTimelineChannelClass *klass)
 /**
  * keyframe_timeline_channel_set_track: (attributes org.gtk.Method.set_property=track)
  * @self: The channel widget that will contain the track
- * @track: A `KeyframeTimelineTrack` for editing a layer or property
+ * @track: A `KeyframeTrack` for editing a layer or property
  *
  * Sets a track widget (the right hand side of the divider) on a channel (a row
  * in the timeline) which is responsible for editing the channel's contents.
  */
 void
 keyframe_timeline_channel_set_track (KeyframeTimelineChannel *self,
-                                     KeyframeTimelineTrack   *track)
+                                     KeyframeTrack   *track)
 {
     if (self->track)
         gtk_widget_unparent (self->track);
@@ -128,7 +128,7 @@ keyframe_timeline_channel_set_track (KeyframeTimelineChannel *self,
  *
  * Returns: (nullable) (transfer none): The track widget of @self
  */
-KeyframeTimelineTrack *
+KeyframeTrack *
 keyframe_timeline_channel_get_track (KeyframeTimelineChannel *self)
 {
     return self->track;

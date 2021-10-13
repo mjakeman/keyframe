@@ -1,12 +1,12 @@
-#include "keyframe-timeline-track.h"
+#include "keyframe-track.h"
 
 typedef struct
 {
     GtkAdjustment *adjustment;
     ulong adjustment_signal;
-} KeyframeTimelineTrackPrivate;
+} KeyframeTrackPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE (KeyframeTimelineTrack, keyframe_timeline_track, GTK_TYPE_WIDGET)
+G_DEFINE_TYPE_WITH_PRIVATE (KeyframeTrack, keyframe_track, GTK_TYPE_WIDGET)
 
 enum {
     PROP_0,
@@ -17,23 +17,23 @@ enum {
 static GParamSpec *properties [N_PROPS];
 
 /**
- * keyframe_timeline_track_new:
+ * keyframe_track_new:
  *
- * Create a new #KeyframeTimelineTrack.
+ * Create a new #KeyframeTrack.
  *
  * Returns: (transfer full): a newly created #GtkWidget
  */
 GtkWidget *
-keyframe_timeline_track_new (void)
+keyframe_track_new (void)
 {
-    return g_object_new (KEYFRAME_TYPE_TIMELINE_TRACK, NULL);
+    return g_object_new (KEYFRAME_TYPE_TRACK, NULL);
 }
 
 static void
-keyframe_timeline_track_finalize (GObject *object)
+keyframe_track_finalize (GObject *object)
 {
-    KeyframeTimelineTrack *self = (KeyframeTimelineTrack *)object;
-    KeyframeTimelineTrackPrivate *priv = keyframe_timeline_track_get_instance_private (self);
+    KeyframeTrack *self = (KeyframeTrack *)object;
+    KeyframeTrackPrivate *priv = keyframe_track_get_instance_private (self);
 
     if (priv->adjustment)
     {
@@ -41,17 +41,17 @@ keyframe_timeline_track_finalize (GObject *object)
         g_clear_pointer (&priv->adjustment, g_object_unref);
     }
 
-    G_OBJECT_CLASS (keyframe_timeline_track_parent_class)->finalize (object);
+    G_OBJECT_CLASS (keyframe_track_parent_class)->finalize (object);
 }
 
 static void
-keyframe_timeline_track_get_property (GObject    *object,
+keyframe_track_get_property (GObject    *object,
                                       guint       prop_id,
                                       GValue     *value,
                                       GParamSpec *pspec)
 {
-    KeyframeTimelineTrack *self = KEYFRAME_TIMELINE_TRACK (object);
-    KeyframeTimelineTrackPrivate *priv = keyframe_timeline_track_get_instance_private (self);
+    KeyframeTrack *self = KEYFRAME_TRACK (object);
+    KeyframeTrackPrivate *priv = keyframe_track_get_instance_private (self);
 
     switch (prop_id)
     {
@@ -64,24 +64,24 @@ keyframe_timeline_track_get_property (GObject    *object,
 }
 
 static void
-keyframe_timeline_track_set_property (GObject      *object,
+keyframe_track_set_property (GObject      *object,
                                       guint         prop_id,
                                       const GValue *value,
                                       GParamSpec   *pspec)
 {
-    KeyframeTimelineTrack *self = KEYFRAME_TIMELINE_TRACK (object);
-    KeyframeTimelineTrackPrivate *priv = keyframe_timeline_track_get_instance_private (self);
+    KeyframeTrack *self = KEYFRAME_TRACK (object);
+    KeyframeTrackPrivate *priv = keyframe_track_get_instance_private (self);
 
     switch (prop_id)
     {
         case PROP_ADJUSTMENT:
             priv->adjustment = g_object_ref (g_value_get_object (value));
 
-            gpointer cb_value_changed = KEYFRAME_TIMELINE_TRACK_GET_CLASS (self)->adjustment_changed;
+            gpointer cb_value_changed = KEYFRAME_TRACK_GET_CLASS (self)->adjustment_changed;
             priv->adjustment_signal = g_signal_connect_swapped (priv->adjustment, "value-changed", cb_value_changed, self);
 
             // Initial Update
-            KEYFRAME_TIMELINE_TRACK_GET_CLASS (self)->adjustment_changed (self, priv->adjustment);
+            KEYFRAME_TRACK_GET_CLASS (self)->adjustment_changed (self, priv->adjustment);
 
             break;
         default:
@@ -90,22 +90,22 @@ keyframe_timeline_track_set_property (GObject      *object,
 }
 
 static void
-keyframe_timeline_track_adjustment_changed (KeyframeTimelineTrack *self,
+keyframe_track_adjustment_changed (KeyframeTrack *self,
                                             GtkAdjustment         *adj)
 {
     // Do nothing
 }
 
 static void
-keyframe_timeline_track_class_init (KeyframeTimelineTrackClass *klass)
+keyframe_track_class_init (KeyframeTrackClass *klass)
 {
-    klass->adjustment_changed = keyframe_timeline_track_adjustment_changed;
+    klass->adjustment_changed = keyframe_track_adjustment_changed;
 
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->finalize = keyframe_timeline_track_finalize;
-    object_class->get_property = keyframe_timeline_track_get_property;
-    object_class->set_property = keyframe_timeline_track_set_property;
+    object_class->finalize = keyframe_track_finalize;
+    object_class->get_property = keyframe_track_get_property;
+    object_class->set_property = keyframe_track_set_property;
 
     properties [PROP_ADJUSTMENT]
         = g_param_spec_object ("adjustment",
@@ -122,7 +122,7 @@ keyframe_timeline_track_class_init (KeyframeTimelineTrackClass *klass)
 }
 
 static void
-keyframe_timeline_track_init (KeyframeTimelineTrack *self)
+keyframe_track_init (KeyframeTrack *self)
 {
     gtk_widget_set_overflow (GTK_WIDGET (self), GTK_OVERFLOW_HIDDEN);
 }

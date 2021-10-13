@@ -1,8 +1,8 @@
-#include "keyframe-timeline-track-clip.h"
+#include "keyframe-track-clip.h"
 
-struct _KeyframeTimelineTrackClip
+struct _KeyframeTrackClip
 {
-    KeyframeTimelineTrack parent_instance;
+    KeyframeTrack parent_instance;
 
     GtkWidget *clip;
     gboolean drag_active;
@@ -16,7 +16,7 @@ struct _KeyframeTimelineTrackClip
     float start_position;
 };
 
-G_DEFINE_FINAL_TYPE (KeyframeTimelineTrackClip, keyframe_timeline_track_clip, KEYFRAME_TYPE_TIMELINE_TRACK)
+G_DEFINE_FINAL_TYPE (KeyframeTrackClip, keyframe_track_clip, KEYFRAME_TYPE_TRACK)
 
 enum {
     PROP_0,
@@ -79,19 +79,19 @@ keyframe_timeline_clip_init (KeyframeTimelineClip *self)
 // START LAYOUT MANAGER
 
 
-#define KEYFRAME_TYPE_TIMELINE_TRACK_CLIP_LAYOUT (keyframe_timeline_track_clip_layout_get_type())
+#define KEYFRAME_TYPE_TRACK_CLIP_LAYOUT (keyframe_track_clip_layout_get_type())
 
-G_DECLARE_FINAL_TYPE (KeyframeTimelineTrackClipLayout, keyframe_timeline_track_clip_layout, KEYFRAME, TIMELINE_TRACK_CLIP_LAYOUT, GtkLayoutManager)
+G_DECLARE_FINAL_TYPE (KeyframeTrackClipLayout, keyframe_track_clip_layout, KEYFRAME, TRACK_CLIP_LAYOUT, GtkLayoutManager)
 
-struct _KeyframeTimelineTrackClipLayout
+struct _KeyframeTrackClipLayout
 {
     GtkLayoutManager parent_instance;
 };
 
-G_DEFINE_FINAL_TYPE (KeyframeTimelineTrackClipLayout, keyframe_timeline_track_clip_layout, GTK_TYPE_LAYOUT_MANAGER)
+G_DEFINE_FINAL_TYPE (KeyframeTrackClipLayout, keyframe_track_clip_layout, GTK_TYPE_LAYOUT_MANAGER)
 
 static void
-keyframe_timeline_track_clip_layout_measure (GtkLayoutManager *layout_manager,
+keyframe_track_clip_layout_measure (GtkLayoutManager *layout_manager,
                                              GtkWidget        *widget,
                                              GtkOrientation    orientation,
                                              int               for_size,
@@ -105,13 +105,13 @@ keyframe_timeline_track_clip_layout_measure (GtkLayoutManager *layout_manager,
 }
 
 static void
-keyframe_timeline_track_clip_layout_allocate (GtkLayoutManager *layout_manager,
+keyframe_track_clip_layout_allocate (GtkLayoutManager *layout_manager,
                                               GtkWidget        *widget,
                                               int               width,
                                               int               height,
                                               int               baseline)
 {
-    KeyframeTimelineTrackClip *clip_track = KEYFRAME_TIMELINE_TRACK_CLIP (widget);
+    KeyframeTrackClip *clip_track = KEYFRAME_TRACK_CLIP (widget);
 
     if (!gtk_widget_should_layout (clip_track->clip))
         return;
@@ -134,24 +134,24 @@ keyframe_timeline_track_clip_layout_allocate (GtkLayoutManager *layout_manager,
 }
 
 static GtkSizeRequestMode
-keyframe_timeline_track_clip_layout_get_request_mode (GtkLayoutManager *layout_manager,
+keyframe_track_clip_layout_get_request_mode (GtkLayoutManager *layout_manager,
                                                       GtkWidget        *widget)
 {
     return GTK_SIZE_REQUEST_CONSTANT_SIZE;
 }
 
 static void
-keyframe_timeline_track_clip_layout_class_init (KeyframeTimelineTrackClipLayoutClass *klass)
+keyframe_track_clip_layout_class_init (KeyframeTrackClipLayoutClass *klass)
 {
     GtkLayoutManagerClass *layout_manager_class = GTK_LAYOUT_MANAGER_CLASS (klass);
 
-    layout_manager_class->measure = keyframe_timeline_track_clip_layout_measure;
-    layout_manager_class->allocate = keyframe_timeline_track_clip_layout_allocate;
-    layout_manager_class->get_request_mode = keyframe_timeline_track_clip_layout_get_request_mode;
+    layout_manager_class->measure = keyframe_track_clip_layout_measure;
+    layout_manager_class->allocate = keyframe_track_clip_layout_allocate;
+    layout_manager_class->get_request_mode = keyframe_track_clip_layout_get_request_mode;
 }
 
 static void
-keyframe_timeline_track_clip_layout_init (KeyframeTimelineTrackClipLayout *self)
+keyframe_track_clip_layout_init (KeyframeTrackClipLayout *self)
 {
 
 }
@@ -163,28 +163,28 @@ keyframe_timeline_track_clip_layout_init (KeyframeTimelineTrackClipLayout *self)
 
 
 GtkWidget *
-keyframe_timeline_track_clip_new (void)
+keyframe_track_clip_new (void)
 {
-    return g_object_new (KEYFRAME_TYPE_TIMELINE_TRACK_CLIP, NULL);
+    return g_object_new (KEYFRAME_TYPE_TRACK_CLIP, NULL);
 }
 
 static void
-keyframe_timeline_track_clip_finalize (GObject *object)
+keyframe_track_clip_finalize (GObject *object)
 {
-    KeyframeTimelineTrackClip *self = (KeyframeTimelineTrackClip *)object;
+    KeyframeTrackClip *self = (KeyframeTrackClip *)object;
 
     gtk_widget_unparent (self->clip);
 
-    G_OBJECT_CLASS (keyframe_timeline_track_clip_parent_class)->finalize (object);
+    G_OBJECT_CLASS (keyframe_track_clip_parent_class)->finalize (object);
 }
 
 static void
-keyframe_timeline_track_clip_get_property (GObject    *object,
+keyframe_track_clip_get_property (GObject    *object,
                                            guint       prop_id,
                                            GValue     *value,
                                            GParamSpec *pspec)
 {
-    KeyframeTimelineTrackClip *self = KEYFRAME_TIMELINE_TRACK_CLIP (object);
+    KeyframeTrackClip *self = KEYFRAME_TRACK_CLIP (object);
 
     switch (prop_id)
     {
@@ -200,12 +200,12 @@ keyframe_timeline_track_clip_get_property (GObject    *object,
 }
 
 static void
-keyframe_timeline_track_clip_set_property (GObject      *object,
+keyframe_track_clip_set_property (GObject      *object,
                                            guint         prop_id,
                                            const GValue *value,
                                            GParamSpec   *pspec)
 {
-    KeyframeTimelineTrackClip *self = KEYFRAME_TIMELINE_TRACK_CLIP (object);
+    KeyframeTrackClip *self = KEYFRAME_TRACK_CLIP (object);
 
     switch (prop_id)
     {
@@ -221,7 +221,7 @@ keyframe_timeline_track_clip_set_property (GObject      *object,
 }
 
 static void
-keyframe_timeline_track_clip_adjustment_changed (KeyframeTimelineTrack *self,
+keyframe_track_clip_adjustment_changed (KeyframeTrack *self,
                                                  GtkAdjustment         *adj)
 {
     if (!GTK_IS_WIDGET (self))
@@ -229,23 +229,23 @@ keyframe_timeline_track_clip_adjustment_changed (KeyframeTimelineTrack *self,
         g_critical ("TrackClip is invalid.");
         return;
     }
-    KeyframeTimelineTrackClip *clip_track = KEYFRAME_TIMELINE_TRACK_CLIP (self);
+    KeyframeTrackClip *clip_track = KEYFRAME_TRACK_CLIP (self);
     clip_track->start_position = gtk_adjustment_get_value (adj);
     gtk_widget_queue_allocate (GTK_WIDGET (self));
 }
 
 static void
-keyframe_timeline_track_clip_class_init (KeyframeTimelineTrackClipClass *klass)
+keyframe_track_clip_class_init (KeyframeTrackClipClass *klass)
 {
-    KeyframeTimelineTrackClass *track_class = KEYFRAME_TIMELINE_TRACK_CLASS (klass);
+    KeyframeTrackClass *track_class = KEYFRAME_TRACK_CLASS (klass);
 
-    track_class->adjustment_changed = keyframe_timeline_track_clip_adjustment_changed;
+    track_class->adjustment_changed = keyframe_track_clip_adjustment_changed;
 
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->finalize = keyframe_timeline_track_clip_finalize;
-    object_class->get_property = keyframe_timeline_track_clip_get_property;
-    object_class->set_property = keyframe_timeline_track_clip_set_property;
+    object_class->finalize = keyframe_track_clip_finalize;
+    object_class->get_property = keyframe_track_clip_get_property;
+    object_class->set_property = keyframe_track_clip_set_property;
 
     properties [PROP_START_TIME] =
         g_param_spec_float ("start-time",
@@ -265,14 +265,14 @@ keyframe_timeline_track_clip_class_init (KeyframeTimelineTrackClipClass *klass)
 
     GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
 
-    gtk_widget_class_set_layout_manager_type (widget_class, KEYFRAME_TYPE_TIMELINE_TRACK_CLIP_LAYOUT);
+    gtk_widget_class_set_layout_manager_type (widget_class, KEYFRAME_TYPE_TRACK_CLIP_LAYOUT);
 }
 
 static void
 cb_drag_begin (GtkGestureDrag            *gesture,
                gdouble                    start_x,
                gdouble                    start_y,
-               KeyframeTimelineTrackClip *self)
+               KeyframeTrackClip *self)
 {
     double test_x = 0;
     double test_y = 0;
@@ -301,7 +301,7 @@ static void
 cb_drag_update (GtkGestureDrag            *gesture,
                 gdouble                    offset_x,
                 gdouble                    offset_y,
-                KeyframeTimelineTrackClip *self)
+                KeyframeTrackClip *self)
 {
     self->drag_current_x = self->drag_start_x + offset_x;
     gtk_widget_queue_allocate (GTK_WIDGET (self));
@@ -311,7 +311,7 @@ static void
 cb_drag_end (GtkGestureDrag            *gesture,
              gdouble                    offset_x,
              gdouble                    offset_y,
-             KeyframeTimelineTrackClip *self)
+             KeyframeTrackClip *self)
 {
     GdkEventSequence *sequence = gtk_gesture_single_get_current_sequence (GTK_GESTURE_SINGLE (gesture));
     if (gtk_gesture_get_sequence_state (GTK_GESTURE (gesture), sequence) == GTK_EVENT_SEQUENCE_DENIED)
@@ -335,7 +335,7 @@ cb_drag_end (GtkGestureDrag            *gesture,
 }
 
 static void
-keyframe_timeline_track_clip_init (KeyframeTimelineTrackClip *self)
+keyframe_track_clip_init (KeyframeTrackClip *self)
 {
     self->clip = keyframe_timeline_clip_new ();
     gtk_widget_set_parent (self->clip, GTK_WIDGET (self));

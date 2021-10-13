@@ -6,7 +6,7 @@
 #include "keyframe-timeline-property.h"
 #include "keyframe-timeline-header.h"
 #include "keyframe-timeline-channel.h"
-#include "keyframe-timeline-tracks.h"
+#include "keyframe-tracks.h"
 
 typedef struct
 {
@@ -318,7 +318,7 @@ bind_listitem_cb (GtkListItemFactory         *factory,
         g_object_bind_property (bind_obj, "visible", checkbox, "active",
                                 G_BINDING_BIDIRECTIONAL|G_BINDING_SYNC_CREATE);
 
-        track = keyframe_timeline_track_clip_new ();
+        track = keyframe_track_clip_new ();
         g_object_bind_property (bind_obj, "start-time", track, "start-time",
                                 G_BINDING_BIDIRECTIONAL|G_BINDING_SYNC_CREATE);
         g_object_bind_property (bind_obj, "end-time", track, "end-time",
@@ -348,21 +348,21 @@ bind_listitem_cb (GtkListItemFactory         *factory,
         // Setup Track
         if (param->value_type == KEYFRAME_TYPE_VALUE_FLOAT)
         {
-            track = keyframe_timeline_track_frame_new ();
+            track = keyframe_track_frame_new ();
             g_object_bind_property (layer, g_param_spec_get_name (param),
                                     track, "float-value",
                                     G_BINDING_BIDIRECTIONAL|G_BINDING_SYNC_CREATE);
         }
         else
         {
-            track = keyframe_timeline_track_new ();
+            track = keyframe_track_new ();
         }
     }
 
     g_object_bind_property (self, "hadjustment", track, "adjustment",
                                 G_BINDING_DEFAULT|G_BINDING_SYNC_CREATE);
     keyframe_timeline_channel_set_track (KEYFRAME_TIMELINE_CHANNEL (channel),
-                                         KEYFRAME_TIMELINE_TRACK (track));
+                                         KEYFRAME_TRACK (track));
 
     int depth = gtk_tree_list_row_get_depth (row);
     gtk_widget_remove_css_class (GTK_WIDGET (channel), "channel-depth-0");
