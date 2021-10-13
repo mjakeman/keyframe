@@ -1,4 +1,4 @@
-#include "keyframe-track-clip.h"
+#include "keyframe-track-clip-private.h"
 
 struct _KeyframeTrackClipWidget
 {

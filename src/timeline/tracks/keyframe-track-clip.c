@@ -1,4 +1,4 @@
-#include "keyframe-track-clip.h"
+#include "keyframe-track-clip-private.h"
 
 G_DEFINE_FINAL_TYPE (KeyframeTrackClip, keyframe_track_clip, KEYFRAME_TYPE_TRACK)
 
