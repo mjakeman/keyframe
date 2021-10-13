@@ -174,9 +174,9 @@ keyframe_track_frame_class_init (KeyframeTrackFrameClass *klass)
 }
 
 static void
-cb_drag_begin (GtkGestureDrag            *gesture,
-               gdouble                    start_x,
-               gdouble                    start_y,
+cb_drag_begin (GtkGestureDrag     *gesture,
+               gdouble             start_x,
+               gdouble             start_y,
                KeyframeTrackFrame *self)
 {
     GtkWidget *drag_target = gtk_widget_pick (GTK_WIDGET (self), start_x, start_y, GTK_PICK_DEFAULT);
@@ -184,9 +184,12 @@ cb_drag_begin (GtkGestureDrag            *gesture,
     if (!KEYFRAME_IS_TRACK_FRAME_POINT (drag_target))
         gtk_gesture_set_state (GTK_GESTURE (gesture), GTK_EVENT_SEQUENCE_DENIED);
 
+    float timestamp;
+    g_object_get (drag_target, "timestamp", &timestamp, NULL);
+
     // TODO: Scaling/Zoom
-    self->drag_start_x = start_x;   // self->clip_timestamp_start;
-    self->drag_current_x = start_x; // self->clip_timestamp_start;
+    self->drag_start_x = timestamp;
+    self->drag_current_x = timestamp;
     self->drag_active = true;
     self->drag_widget = drag_target;
 }
