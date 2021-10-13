@@ -63,3 +63,13 @@ clip:hover {
 row:selected clip {
     border: 1px solid white;
 }
+
+control-point {
+    background-image: linear-gradient(to bottom, @blue_2, @blue_4);
+    border: 1px solid alpha(white, 0.7);
+    border-radius: 999px;
+}
+
+control-point:hover {
+    border: 1px solid white;
+}

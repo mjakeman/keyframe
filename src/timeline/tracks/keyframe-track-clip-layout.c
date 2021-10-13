@@ -43,7 +43,6 @@ keyframe_track_clip_layout_allocate (GtkLayoutManager *layout_manager,
     }
     else
     {
-        g_print ("%f %f\n", clip_track->clip_timestamp_start, clip_track->clip_timestamp_end);
         gtk_widget_size_allocate (clip_track->clip,
                               &(const GtkAllocation){ clip_track->clip_timestamp_start - clip_track->start_position, 0, clip_width, height },
                               -1);

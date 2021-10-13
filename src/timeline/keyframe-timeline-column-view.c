@@ -396,7 +396,6 @@ cb_adjustment_changed (KeyframeTimelineColumnView *self,
     // TODO: Maybe centre position instead of start?
     priv->start_pos = gtk_adjustment_get_value (adj);
     g_object_notify_by_pspec (G_OBJECT (self), properties [PROP_START_POSITION]);
-    g_print ("%f\n", priv->start_pos);
 }
 
 GtkSelectionModel *

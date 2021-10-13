@@ -20,6 +20,7 @@ keyframe_sources = [
 	'timeline/tracks/keyframe-track-clip-widget.c',
 	'timeline/tracks/keyframe-track-frame.c',
 	'timeline/tracks/keyframe-track-frame-layout.c',
+	'timeline/tracks/keyframe-track-frame-point.c',
 	'model/keyframe-layer.c',
 	'model/keyframe-layer-geometry.c',
 	'model/keyframe-layer-text.c',

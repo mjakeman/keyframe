@@ -24,6 +24,9 @@ keyframe_track_frame_finalize (GObject *object)
     if (self->float_value)
         g_boxed_free (KEYFRAME_TYPE_VALUE_FLOAT, self->float_value);
 
+    if (self->control_points)
+        g_slist_free_full (self->control_points, (GDestroyNotify)gtk_widget_unparent);
+
     G_OBJECT_CLASS (keyframe_track_frame_parent_class)->finalize (object);
 }
 
@@ -37,11 +40,11 @@ keyframe_track_frame_get_property (GObject    *object,
 
     switch (prop_id)
     {
-        case PROP_FLOAT_VALUE:
-            g_value_set_boxed (value, self->float_value);
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    case PROP_FLOAT_VALUE:
+        g_value_set_boxed (value, self->float_value);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
 }
 
@@ -55,17 +58,41 @@ keyframe_track_frame_set_property (GObject      *object,
 
     switch (prop_id)
     {
-        case PROP_FLOAT_VALUE:
-            if (self->float_value)
-                g_boxed_free (KEYFRAME_TYPE_VALUE_FLOAT, self->float_value);
+    case PROP_FLOAT_VALUE:
+        if (self->float_value)
+            g_boxed_free (KEYFRAME_TYPE_VALUE_FLOAT, self->float_value);
 
-            // TODO: Rename to something like `value_float_ref()`
-            self->float_value = g_boxed_copy (KEYFRAME_TYPE_VALUE_FLOAT, g_value_get_boxed (value));
-            gtk_widget_queue_allocate (GTK_WIDGET (self));
-            gtk_widget_queue_draw (GTK_WIDGET (self));
-            break;
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        // TODO: Rename to something like `value_float_ref()`
+        self->float_value = g_boxed_copy (KEYFRAME_TYPE_VALUE_FLOAT, g_value_get_boxed (value));
+
+        // Setup Keyframes
+        if (self->float_value)
+        {
+            g_slist_free_full (self->control_points, (GDestroyNotify)gtk_widget_unparent);
+
+            // TODO: Check static before obtaining keyframes
+            // There should be some sort of check inside `get_keyframes()` so we don't crash
+            GSList *keyframes = keyframe_value_float_get_keyframes (self->float_value);
+
+            for (GSList *l = keyframes; l != NULL; l = l->next)
+            {
+                KeyframeValueFloatPair *frame = l->data;
+
+                GtkWidget *point_widget = keyframe_track_frame_point_new (frame->timestamp, frame->value);
+                gtk_widget_set_parent (point_widget, GTK_WIDGET (self));
+
+                self->control_points = g_slist_append (self->control_points, point_widget);
+            }
+        }
+
+        gtk_widget_queue_allocate (GTK_WIDGET (self));
+        gtk_widget_queue_draw (GTK_WIDGET (self));
+
+
+
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
 }
 
@@ -73,7 +100,6 @@ static void
 keyframe_track_frame_adjustment_changed (KeyframeTrack *self,
                                                   GtkAdjustment         *adj)
 {
-    g_print ("Adjustment Changed?\n");
     if (!GTK_IS_WIDGET (self))
     {
         g_critical ("TrackFrame is invalid.");
@@ -110,7 +136,6 @@ test_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
         float y = 0;
         float w = dim, h = dim;
 
-        g_print ("Drawing Keyframe\n");
         GdkRGBA colour;
         gdk_rgba_parse (&colour, "cyan");
         gtk_snapshot_append_color (snapshot, &colour, &GRAPHENE_RECT_INIT (x, y, w, h));
@@ -141,7 +166,7 @@ keyframe_track_frame_class_init (KeyframeTrackFrameClass *klass)
 
     GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
 
-    widget_class->snapshot = test_snapshot;
+    // widget_class->snapshot = test_snapshot;
 
     gtk_widget_class_set_layout_manager_type (widget_class, KEYFRAME_TYPE_TRACK_FRAME_LAYOUT);
 }
