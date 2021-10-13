@@ -64,9 +64,18 @@ row:selected clip {
     border: 1px solid white;
 }
 
+/* Diamond */
 control-point {
-    background-image: linear-gradient(to bottom, @blue_2, @blue_4);
+    margin: 6px;
+    background-image: linear-gradient(to bottom right, @yellow_2, @yellow_4);
     border: 1px solid alpha(white, 0.7);
+    transform: rotate(45deg);
+}
+
+/* Circle */
+control-point.circle {
+    margin: 4px;
+    background-image: linear-gradient(to bottom, @blue_2, @blue_4);
     border-radius: 999px;
 }
 
