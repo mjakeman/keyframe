@@ -20,6 +20,15 @@ void keyframe_value_float_set_static (KeyframeValueFloat *self, float value);
 
 GSList *keyframe_value_float_get_keyframes (KeyframeValueFloat *self);
 
+void
+keyframe_value_float_push_keyframe (KeyframeValueFloat *self,
+                                    float               timestamp,
+                                    float               value);
+
+void
+keyframe_value_float_delete_keyframe (KeyframeValueFloat *self,
+                                      float               timestamp);
+
 // Test Function
 void keyframe_value_float_set_dynamic_test_data (KeyframeValueFloat *self);
 void keyframe_value_float_print (KeyframeValueFloat *self);

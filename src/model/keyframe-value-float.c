@@ -74,20 +74,42 @@ keyframe_compare (KeyframeValueFloatPair *a,
     {
         g_warning ("We probably don't want multiple keyframes existing at the\
             same point. Makes things confusing :/\n");
-        return 0;
     }
+
+    return 0;
 }
 
 
-static void
-push_keyframe (KeyframeValueFloat *self,
-               float               timestamp,
-               float               value)
+void
+keyframe_value_float_push_keyframe (KeyframeValueFloat *self,
+                                    float               timestamp,
+                                    float               value)
 {
     KeyframeValueFloatPair *pair = g_new0 (KeyframeValueFloatPair, 1);
     pair->timestamp = timestamp;
     pair->value = value;
     self->keyframes = g_slist_insert_sorted (self->keyframes, pair, (GCompareFunc)keyframe_compare);
+}
+
+void
+keyframe_value_float_delete_keyframe (KeyframeValueFloat *self,
+                                      float               timestamp)
+{
+    for (GSList *l = self->keyframes; l != NULL; l = l->next)
+    {
+        KeyframeValueFloatPair *pair = (KeyframeValueFloatPair *)l->data;
+        if (pair->timestamp > timestamp)
+            break;
+
+        if (pair->timestamp == timestamp)
+        {
+            self->keyframes = g_slist_remove (self->keyframes, pair);
+            g_free (pair);
+            return;
+        }
+    }
+
+    g_critical ("Could not delete the keyframe at time %f because no such keyframe exists.", timestamp);
 }
 
 float
@@ -135,11 +157,11 @@ keyframe_value_float_set_dynamic_test_data (KeyframeValueFloat *self)
 
     self->use_keyframes = TRUE;
 
-    push_keyframe (self, 0.0f, 100.0f);
-    push_keyframe (self, 200.0f, 900.0f);
-    push_keyframe (self, 400.0f, 300.0f);
-    push_keyframe (self, 500.0f, 600.0f);
-    push_keyframe (self, 1000.0f, 1920.0f);
+    keyframe_value_float_push_keyframe (self, 0.0f, 100.0f);
+    keyframe_value_float_push_keyframe (self, 200.0f, 900.0f);
+    keyframe_value_float_push_keyframe (self, 400.0f, 300.0f);
+    keyframe_value_float_push_keyframe (self, 500.0f, 600.0f);
+    keyframe_value_float_push_keyframe (self, 1000.0f, 1920.0f);
 }
 
 GSList *

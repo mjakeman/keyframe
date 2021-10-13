@@ -49,10 +49,34 @@ keyframe_track_frame_get_property (GObject    *object,
 }
 
 static void
+recreate_keyframes (KeyframeTrackFrame *self)
+{
+    g_slist_free_full (g_steal_pointer (&self->control_points),
+                       (GDestroyNotify)gtk_widget_unparent);
+
+    // TODO: Check static before obtaining keyframes
+    // There should be some sort of check inside `get_keyframes()` so we don't crash
+    GSList *keyframes = keyframe_value_float_get_keyframes (self->float_value);
+
+    for (GSList *l = keyframes; l != NULL; l = l->next)
+    {
+        KeyframeValueFloatPair *frame = l->data;
+
+        GtkWidget *point_widget = keyframe_track_frame_point_new (frame->timestamp, frame->value);
+        gtk_widget_set_parent (point_widget, GTK_WIDGET (self));
+
+        self->control_points = g_slist_append (self->control_points, point_widget);
+    }
+
+    gtk_widget_queue_allocate (GTK_WIDGET (self));
+    gtk_widget_queue_draw (GTK_WIDGET (self));
+}
+
+static void
 keyframe_track_frame_set_property (GObject      *object,
-                                            guint         prop_id,
-                                            const GValue *value,
-                                            GParamSpec   *pspec)
+                                   guint         prop_id,
+                                   const GValue *value,
+                                   GParamSpec   *pspec)
 {
     KeyframeTrackFrame *self = KEYFRAME_TRACK_FRAME (object);
 
@@ -67,29 +91,7 @@ keyframe_track_frame_set_property (GObject      *object,
 
         // Setup Keyframes
         if (self->float_value)
-        {
-            g_slist_free_full (self->control_points, (GDestroyNotify)gtk_widget_unparent);
-
-            // TODO: Check static before obtaining keyframes
-            // There should be some sort of check inside `get_keyframes()` so we don't crash
-            GSList *keyframes = keyframe_value_float_get_keyframes (self->float_value);
-
-            for (GSList *l = keyframes; l != NULL; l = l->next)
-            {
-                KeyframeValueFloatPair *frame = l->data;
-
-                GtkWidget *point_widget = keyframe_track_frame_point_new (frame->timestamp, frame->value);
-                gtk_widget_set_parent (point_widget, GTK_WIDGET (self));
-
-                self->control_points = g_slist_append (self->control_points, point_widget);
-            }
-        }
-
-        gtk_widget_queue_allocate (GTK_WIDGET (self));
-        gtk_widget_queue_draw (GTK_WIDGET (self));
-
-
-
+            recreate_keyframes (self);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -200,20 +202,34 @@ cb_drag_update (GtkGestureDrag            *gesture,
 }
 
 static void
-cb_drag_end (GtkGestureDrag            *gesture,
-             gdouble                    offset_x,
-             gdouble                    offset_y,
+cb_drag_end (GtkGestureDrag     *gesture,
+             gdouble             offset_x,
+             gdouble             offset_y,
              KeyframeTrackFrame *self)
 {
     GdkEventSequence *sequence = gtk_gesture_single_get_current_sequence (GTK_GESTURE_SINGLE (gesture));
     if (gtk_gesture_get_sequence_state (GTK_GESTURE (gesture), sequence) == GTK_EVENT_SEQUENCE_DENIED)
         return;
 
+    float timestamp, value;
+    g_object_get (self->drag_widget,
+                  "timestamp", &timestamp,
+                  "value", &value,
+                  NULL);
+
+    // TODO: Create a move_keyframe () method inside FloatValue
+    keyframe_value_float_delete_keyframe (self->float_value, timestamp);
+    keyframe_value_float_push_keyframe (self->float_value, self->drag_current_x, value);
+
+    keyframe_value_float_print (self->float_value);
+
     self->drag_active = FALSE;
     self->drag_start_x = 0;
     self->drag_current_x = 0;
+    self->drag_widget = NULL;
 
-    gtk_widget_queue_allocate (GTK_WIDGET (self));
+    // TODO: Recycle rather than recreate - This is way too expensive
+    recreate_keyframes (self);
 }
 
 static void
