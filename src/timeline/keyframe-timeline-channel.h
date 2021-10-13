@@ -2,7 +2,7 @@
 
 #include <gtk/gtk.h>
 
-#include "keyframe-track.h"
+#include "tracks/keyframe-track.h"
 
 G_BEGIN_DECLS
 

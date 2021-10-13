@@ -1,6 +1,6 @@
 #include "keyframe-track-frame.h"
 
-#include "../model/keyframe-value-float.h"
+#include "../../model/keyframe-value-float.h"
 
 struct _KeyframeTrackFrame
 {

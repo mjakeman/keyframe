@@ -6,7 +6,7 @@
 #include "keyframe-timeline-property.h"
 #include "keyframe-timeline-header.h"
 #include "keyframe-timeline-channel.h"
-#include "keyframe-tracks.h"
+#include "tracks/keyframe-tracks.h"
 
 typedef struct
 {
