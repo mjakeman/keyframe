@@ -182,7 +182,10 @@ cb_drag_begin (GtkGestureDrag     *gesture,
     GtkWidget *drag_target = gtk_widget_pick (GTK_WIDGET (self), start_x, start_y, GTK_PICK_DEFAULT);
 
     if (!KEYFRAME_IS_TRACK_FRAME_POINT (drag_target))
+    {
         gtk_gesture_set_state (GTK_GESTURE (gesture), GTK_EVENT_SEQUENCE_DENIED);
+        return;
+    }
 
     float timestamp;
     g_object_get (drag_target, "timestamp", &timestamp, NULL);
@@ -236,12 +239,35 @@ cb_drag_end (GtkGestureDrag     *gesture,
 }
 
 static void
+cb_pressed (GtkGestureClick    *gesture,
+            gint                n_press,
+            gdouble             x,
+            gdouble             y,
+            KeyframeTrackFrame *self)
+{
+    // Only consider double clicks
+    if (n_press < 2)
+        return;
+
+    float timestamp = self->start_position + x;
+    keyframe_value_float_push_keyframe (self->float_value, timestamp, 100);
+
+    // TODO: Recycle rather than recreate - This is way too expensive
+    recreate_keyframes (self);
+}
+
+static void
 keyframe_track_frame_init (KeyframeTrackFrame *self)
 {
     GtkGesture *drag_gesture = gtk_gesture_drag_new ();
-    gtk_widget_add_controller (self, GTK_EVENT_CONTROLLER (drag_gesture));
+    gtk_widget_add_controller (GTK_WIDGET (self), GTK_EVENT_CONTROLLER (drag_gesture));
 
     g_signal_connect (drag_gesture, "drag-begin", G_CALLBACK (cb_drag_begin), self);
     g_signal_connect (drag_gesture, "drag-update", G_CALLBACK (cb_drag_update), self);
     g_signal_connect (drag_gesture, "drag-end", G_CALLBACK (cb_drag_end), self);
+
+    GtkGesture *double_click_gesture = gtk_gesture_click_new ();
+    gtk_widget_add_controller (GTK_WIDGET (self), GTK_EVENT_CONTROLLER (double_click_gesture));
+
+    g_signal_connect (double_click_gesture, "pressed", G_CALLBACK (cb_pressed), self);
 }
