@@ -16,6 +16,8 @@ keyframe_sources = [
 	'timeline/keyframe-timeline-channel.c',
 	'timeline/keyframe-track.c',
 	'timeline/keyframe-track-clip.c',
+	'timeline/keyframe-track-clip-layout.c',
+	'timeline/keyframe-track-clip-widget.c',
 	'timeline/keyframe-track-frame.c',
 	'model/keyframe-layer.c',
 	'model/keyframe-layer-geometry.c',
