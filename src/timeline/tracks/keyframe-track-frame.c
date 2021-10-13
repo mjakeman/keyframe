@@ -177,10 +177,16 @@ cb_drag_begin (GtkGestureDrag            *gesture,
                gdouble                    start_y,
                KeyframeTrackFrame *self)
 {
+    GtkWidget *drag_target = gtk_widget_pick (GTK_WIDGET (self), start_x, start_y, GTK_PICK_DEFAULT);
+
+    if (!KEYFRAME_IS_TRACK_FRAME_POINT (drag_target))
+        gtk_gesture_set_state (GTK_GESTURE (gesture), GTK_EVENT_SEQUENCE_DENIED);
+
     // TODO: Scaling/Zoom
     self->drag_start_x = start_x;   // self->clip_timestamp_start;
     self->drag_current_x = start_x; // self->clip_timestamp_start;
     self->drag_active = true;
+    self->drag_widget = drag_target;
 }
 
 static void

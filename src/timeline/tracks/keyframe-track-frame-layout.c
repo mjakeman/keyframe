@@ -40,7 +40,10 @@ keyframe_track_frame_layout_allocate (GtkLayoutManager *layout_manager,
         KeyframeTrackFramePoint *point = KEYFRAME_TRACK_FRAME_POINT (child);
 
         float timestamp;
-        g_object_get (point, "timestamp", &timestamp, NULL);
+        if (frame_track->drag_active && (child == frame_track->drag_widget))
+            timestamp = frame_track->drag_current_x;
+        else
+            g_object_get (point, "timestamp", &timestamp, NULL);
 
         float x = timestamp - frame_track->start_position - (height/2);
 
@@ -50,7 +53,7 @@ keyframe_track_frame_layout_allocate (GtkLayoutManager *layout_manager,
 
 static GtkSizeRequestMode
 keyframe_track_frame_layout_get_request_mode (GtkLayoutManager *layout_manager,
-                                                       GtkWidget        *widget)
+                                              GtkWidget        *widget)
 {
     return GTK_SIZE_REQUEST_CONSTANT_SIZE;
 }

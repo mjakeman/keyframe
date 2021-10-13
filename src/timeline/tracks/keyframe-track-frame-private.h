@@ -14,6 +14,7 @@ struct _KeyframeTrackFrame
     gboolean drag_active;
     float drag_start_x;
     float drag_current_x;
+    GtkWidget *drag_widget;
 
     float start_position;
 
