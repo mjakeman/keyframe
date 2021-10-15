@@ -1,5 +1,7 @@
 #include "keyframe-track-frame-private.h"
 
+#include "../../keyframe-control-point-dialog.h"
+
 G_DEFINE_FINAL_TYPE (KeyframeTrackFrame, keyframe_track_frame, KEYFRAME_TYPE_TRACK)
 
 enum {
@@ -114,37 +116,6 @@ keyframe_track_frame_adjustment_changed (KeyframeTrack *self,
 }
 
 static void
-test_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
-{
-    GtkAllocation allocation;
-    gtk_widget_get_allocation (widget, &allocation);
-
-    KeyframeTrackFrame *self = KEYFRAME_TRACK_FRAME (widget);
-
-    if (!self->float_value)
-        return;
-
-    // TODO: Check static before obtaining keyframes
-    // There should be some sort of check inside `get_keyframes()` so we don't crash
-    GSList *keyframes = keyframe_value_float_get_keyframes (self->float_value);
-
-    int dim = gtk_widget_get_height (widget);
-
-    for (GSList *l = keyframes; l != NULL; l = l->next)
-    {
-        KeyframeValueFloatPair *frame = l->data;
-
-        float x = frame->timestamp - self->start_position;
-        float y = 0;
-        float w = dim, h = dim;
-
-        GdkRGBA colour;
-        gdk_rgba_parse (&colour, "cyan");
-        gtk_snapshot_append_color (snapshot, &colour, &GRAPHENE_RECT_INIT (x, y, w, h));
-    }
-}
-
-static void
 keyframe_track_frame_class_init (KeyframeTrackFrameClass *klass)
 {
     KeyframeTrackClass *track_class = KEYFRAME_TRACK_CLASS (klass);
@@ -168,8 +139,6 @@ keyframe_track_frame_class_init (KeyframeTrackFrameClass *klass)
 
     GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
 
-    // widget_class->snapshot = test_snapshot;
-
     gtk_widget_class_set_layout_manager_type (widget_class, KEYFRAME_TYPE_TRACK_FRAME_LAYOUT);
 }
 
@@ -181,11 +150,13 @@ cb_drag_begin (GtkGestureDrag     *gesture,
 {
     GtkWidget *drag_target = gtk_widget_pick (GTK_WIDGET (self), start_x, start_y, GTK_PICK_DEFAULT);
 
-    if (!KEYFRAME_IS_TRACK_FRAME_POINT (drag_target))
+    if (!KEYFRAME_IS_TRACK_FRAME_POINT (drag_target) || self->inhibit_drag)
     {
         gtk_gesture_set_state (GTK_GESTURE (gesture), GTK_EVENT_SEQUENCE_DENIED);
         return;
     }
+
+    g_print ("Begin Drag\n");
 
     float timestamp;
     g_object_get (drag_target, "timestamp", &timestamp, NULL);
@@ -203,6 +174,8 @@ cb_drag_update (GtkGestureDrag            *gesture,
                 gdouble                    offset_y,
                 KeyframeTrackFrame *self)
 {
+    g_print ("Update Drag\n");
+
     self->drag_current_x = self->drag_start_x + offset_x;
     gtk_widget_queue_allocate (GTK_WIDGET (self));
 }
@@ -217,6 +190,8 @@ cb_drag_end (GtkGestureDrag     *gesture,
     if (gtk_gesture_get_sequence_state (GTK_GESTURE (gesture), sequence) == GTK_EVENT_SEQUENCE_DENIED)
         return;
 
+    g_print ("End Drag\n");
+
     float timestamp, value;
     g_object_get (self->drag_widget,
                   "timestamp", &timestamp,
@@ -227,8 +202,6 @@ cb_drag_end (GtkGestureDrag     *gesture,
     keyframe_value_float_delete_keyframe (self->float_value, timestamp);
     keyframe_value_float_push_keyframe (self->float_value, self->drag_current_x, value);
 
-    keyframe_value_float_print (self->float_value);
-
     self->drag_active = FALSE;
     self->drag_start_x = 0;
     self->drag_current_x = 0;
@@ -236,6 +209,31 @@ cb_drag_end (GtkGestureDrag     *gesture,
 
     // TODO: Recycle rather than recreate - This is way too expensive
     recreate_keyframes (self);
+}
+
+static void
+cb_edit_keyframe_response (KeyframeControlPointDialog *dlg,
+                           gint                        response_id,
+                           KeyframeTrackFrame         *self)
+{
+    g_print ("Edit Keyframe\n");
+
+    if (response_id == GTK_RESPONSE_OK)
+    {
+        float old_time, new_time, new_value;
+        g_object_get (dlg,
+                      "old-timestamp", &old_time,
+                      "timestamp", &new_time,
+                      "value", &new_value,
+                      NULL);
+        keyframe_value_float_delete_keyframe (self->float_value, old_time);
+        keyframe_value_float_push_keyframe (self->float_value, new_time, new_value);
+
+        recreate_keyframes (self);
+    }
+
+    gtk_window_destroy (GTK_WINDOW (dlg));
+    self->inhibit_drag = FALSE;
 }
 
 static void
@@ -249,11 +247,39 @@ cb_pressed (GtkGestureClick    *gesture,
     if (n_press < 2)
         return;
 
-    float timestamp = self->start_position + x;
-    keyframe_value_float_push_keyframe (self->float_value, timestamp, 100);
+    // Prefer pressed gesture to drag (if both run, then the drag operates on
+    // keyframes which no longer exist, causing a crash).
+    // TODO: There must surely be a better way of doing this
+    self->inhibit_drag = TRUE;
 
-    // TODO: Recycle rather than recreate - This is way too expensive
-    recreate_keyframes (self);
+    GtkWidget *target = gtk_widget_pick (GTK_WIDGET (self), x, y, GTK_PICK_DEFAULT);
+
+    if (KEYFRAME_IS_TRACK_FRAME_POINT (target))
+    {
+        KeyframeTrackFramePoint *point = KEYFRAME_TRACK_FRAME_POINT (target);
+
+        float timestamp, value;
+        g_object_get (point,
+                      "timestamp", &timestamp,
+                      "value", &value,
+                      NULL);
+
+        GtkWidget *dlg = keyframe_control_point_dialog_new (timestamp, value);
+        GtkWindow *parent = GTK_WINDOW (gtk_widget_get_root (GTK_WIDGET (self)));
+        gtk_window_set_transient_for (GTK_WINDOW (dlg), parent);
+        gtk_window_set_modal (GTK_WINDOW (dlg), TRUE);
+        g_signal_connect (dlg, "response", G_CALLBACK (cb_edit_keyframe_response), self);
+        gtk_window_present (GTK_WINDOW (dlg));
+    }
+    else
+    {
+        float timestamp = self->start_position + x;
+        keyframe_value_float_push_keyframe (self->float_value, timestamp, 100);
+
+        // TODO: Recycle rather than recreate - This is way too expensive
+        recreate_keyframes (self);
+        self->inhibit_drag = FALSE;
+    }
 }
 
 static void
@@ -261,13 +287,15 @@ keyframe_track_frame_init (KeyframeTrackFrame *self)
 {
     GtkGesture *drag_gesture = gtk_gesture_drag_new ();
     gtk_widget_add_controller (GTK_WIDGET (self), GTK_EVENT_CONTROLLER (drag_gesture));
+    gtk_event_controller_set_propagation_phase (GTK_EVENT_CONTROLLER (drag_gesture), GTK_PHASE_BUBBLE);
 
     g_signal_connect (drag_gesture, "drag-begin", G_CALLBACK (cb_drag_begin), self);
     g_signal_connect (drag_gesture, "drag-update", G_CALLBACK (cb_drag_update), self);
     g_signal_connect (drag_gesture, "drag-end", G_CALLBACK (cb_drag_end), self);
 
-    GtkGesture *double_click_gesture = gtk_gesture_click_new ();
-    gtk_widget_add_controller (GTK_WIDGET (self), GTK_EVENT_CONTROLLER (double_click_gesture));
+    GtkGesture *pressed_gesture = gtk_gesture_click_new ();
+    gtk_widget_add_controller (GTK_WIDGET (self), GTK_EVENT_CONTROLLER (pressed_gesture));
+    gtk_event_controller_set_propagation_phase (GTK_EVENT_CONTROLLER (pressed_gesture), GTK_PHASE_BUBBLE);
 
-    g_signal_connect (double_click_gesture, "pressed", G_CALLBACK (cb_pressed), self);
+    g_signal_connect (pressed_gesture, "pressed", G_CALLBACK (cb_pressed), self);
 }

@@ -8,6 +8,7 @@ keyframe_sources = [
 	'keyframe-export-dialog.c',
 	'keyframe-layer-list.c',
 	'keyframe-layer-properties-dialog.c',
+	'keyframe-control-point-dialog.c',
 	'timeline/keyframe-timeline.c',
 	'timeline/keyframe-timeline-menu.c',
 	'timeline/keyframe-timeline-column-view.c',

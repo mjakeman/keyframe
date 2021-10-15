@@ -2,6 +2,7 @@
 <gresources>
   <gresource prefix="/com/mattjakeman/Keyframe">
     <file>keyframe-window.ui</file>
+    <file>control-point-dialog.ui</file>
     <file>help-overlay.ui</file>
     <file>style.css</file>
     <file preprocess="xml-stripblanks">icons/cameras-symbolic.svg</file>

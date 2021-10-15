@@ -11,6 +11,7 @@ struct _KeyframeTrackFrame
 
     KeyframeValueFloat *float_value;
 
+    gboolean inhibit_drag;
     gboolean drag_active;
     float drag_start_x;
     float drag_current_x;
