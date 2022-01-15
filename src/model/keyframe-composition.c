@@ -3,13 +3,23 @@
 typedef struct
 {
     char *title;
-    GSList *layers;
+    GList *layers;
 
     int width, height;
     float framerate;
+
+    // TODO: We likely don't want composition controlling the current
+    // time. That should either be a feature of composition manager or
+    // an auxiliary class e.g. some kind of CompositionObserver.
+    float current_time;
 } KeyframeCompositionPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE (KeyframeComposition, keyframe_composition, G_TYPE_OBJECT)
+static void keyframe_composition_list_model_init (GListModelInterface *iface);
+
+G_DEFINE_TYPE_WITH_CODE (KeyframeComposition, keyframe_composition, G_TYPE_OBJECT,
+                         G_ADD_PRIVATE (KeyframeComposition)
+                         G_IMPLEMENT_INTERFACE (G_TYPE_LIST_MODEL,
+                                                keyframe_composition_list_model_init))
 
 enum {
     PROP_0,
@@ -17,6 +27,7 @@ enum {
     PROP_WIDTH,
     PROP_HEIGHT,
     PROP_FRAMERATE,
+    PROP_CURRENT_TIME,
     N_PROPS
 };
 
@@ -54,7 +65,7 @@ keyframe_composition_finalize (GObject *object)
     KeyframeComposition *self = (KeyframeComposition *)object;
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
 
-    g_slist_free_full (g_steal_pointer (&priv->layers), g_object_unref);
+    g_list_free_full (g_steal_pointer (&priv->layers), g_object_unref);
 
     G_OBJECT_CLASS (keyframe_composition_parent_class)->finalize (object);
 }
@@ -82,6 +93,9 @@ keyframe_composition_get_property (GObject    *object,
       case PROP_FRAMERATE:
           g_value_set_float (value, priv->framerate);
           break;
+      case PROP_CURRENT_TIME:
+          g_value_set_float(value, priv->current_time);
+          break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       }
@@ -97,7 +111,7 @@ keyframe_composition_set_property (GObject      *object,
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
 
     switch (prop_id)
-      {
+    {
       case PROP_TITLE:
           priv->title = g_value_dup_string (value);
           break;
@@ -110,16 +124,37 @@ keyframe_composition_set_property (GObject      *object,
       case PROP_FRAMERATE:
           priv->framerate = g_value_get_float (value);
           break;
+      case PROP_CURRENT_TIME:
+          priv->current_time = g_value_get_float(value);
+          break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      }
+    }
+
+    // Invalidate the composition
+    g_signal_emit (self, signals[CHANGED], 0);
 }
 
 void
 keyframe_composition_push_layer (KeyframeComposition *self, KeyframeLayer *layer)
 {
+    KeyframeComposition *existing;
+    g_object_get (layer, "composition", &existing, NULL);
+    if (existing != NULL)
+    {
+        g_critical ("Layer already has a parent composition");
+        return;
+    }
+
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
-    priv->layers = g_slist_append (priv->layers, layer); // TODO: Prepend?
+    g_object_set (layer, "composition", g_object_ref (self), NULL);
+    priv->layers = g_list_append (priv->layers, layer);
+
+    // TODO: List model reverses indices (should fix that)
+    g_list_model_items_changed (G_LIST_MODEL (self),
+                                0,  /* start index */
+                                0,  /* removed */
+                                1); /* added */
     g_signal_emit (self, signals[CHANGED], 0);
 }
 
@@ -127,11 +162,31 @@ void
 keyframe_composition_delete_layer (KeyframeComposition *self, KeyframeLayer *layer)
 {
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
-    priv->layers = g_slist_remove (priv->layers, layer);
+    guint index = g_list_index (priv->layers, layer);
+    guint length = g_list_length (priv->layers);
+
+    // TODO: Simplify list model storage
+    // Our list model code is a bit strange, since we store bottom to top, but
+    // retrieve top to bottom. Hence why there is hacky code like this. We
+    // should settle on one or the other - this is messy.
+    guint list_model_position = (length - 1) - index;
+
+    priv->layers = g_list_remove (priv->layers, layer);
+    g_object_unref (layer);
+
+    g_list_model_items_changed (G_LIST_MODEL (self), list_model_position, 1, 0);
     g_signal_emit (self, signals[CHANGED], 0);
 }
 
-GSList *
+/**
+ * keyframe_composition_get_layers:
+ *
+ * Retrieve all the layers in the composition. The caller must *not* modify
+ * or free the list, and doing so is an error.
+ *
+ * Returns: The layers in this composition
+ */
+GList *
 keyframe_composition_get_layers (KeyframeComposition *self)
 {
     KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
@@ -142,6 +197,58 @@ void
 keyframe_composition_invalidate (KeyframeComposition *self)
 {
     g_signal_emit (self, signals[CHANGED], 0);
+}
+
+static gpointer
+list_model_get_item (GListModel* list, guint position)
+{
+    KeyframeComposition *self = KEYFRAME_COMPOSITION (list);
+    KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
+
+    // TODO: We should store the beginning and end items
+    guint length = g_list_length (priv->layers);
+    guint index = (length - 1) - position;
+    g_assert (index >= 0 && index < length);
+
+    if (index >= 0 && index < length)
+    {
+        KeyframeLayer *layer = g_list_nth_data (priv->layers, index);
+        g_print ("%d of %d: %s\n", position+1, length, g_type_name_from_instance ((GTypeInstance *)layer));
+        g_assert (KEYFRAME_IS_LAYER (layer));
+
+        // Make sure to ref the object!
+        return g_object_ref (layer);
+    }
+
+    // Invalid, return NULL
+    return NULL;
+}
+
+static GType
+list_model_get_item_type (GListModel*)
+{
+    g_type_ensure (KEYFRAME_TYPE_LAYER);
+    g_type_ensure (KEYFRAME_TYPE_LAYER_COOL);
+    g_type_ensure (KEYFRAME_TYPE_LAYER_GEOMETRY);
+    g_type_ensure (KEYFRAME_TYPE_LAYER_TEXT);
+    return keyframe_layer_get_type ();
+}
+
+static guint
+list_model_get_n_items (GListModel* list)
+{
+    KeyframeComposition *self = KEYFRAME_COMPOSITION (list);
+    KeyframeCompositionPrivate *priv = keyframe_composition_get_instance_private (self);
+
+    return g_list_length (priv->layers);
+}
+
+static void
+keyframe_composition_list_model_init (GListModelInterface *iface)
+{
+    iface->get_n_items = list_model_get_n_items;
+    iface->get_item = list_model_get_item;
+    iface->get_item_type = list_model_get_item_type;
 }
 
 static void
@@ -157,6 +264,7 @@ keyframe_composition_class_init (KeyframeCompositionClass *klass)
     properties [PROP_WIDTH] = g_param_spec_int ("width", "Width", "Width", 0, G_MAXINT, 0, G_PARAM_READWRITE);
     properties [PROP_HEIGHT] = g_param_spec_int ("height", "Height", "Height", 0, G_MAXINT, 0, G_PARAM_READWRITE);
     properties [PROP_FRAMERATE] = g_param_spec_float ("framerate", "Framerate", "Framerate", 0, 1000, 0, G_PARAM_READWRITE);
+    properties [PROP_CURRENT_TIME] = g_param_spec_float ("current-time", "Current Time", "Current Time", 0, G_MAXFLOAT, 0, G_PARAM_READWRITE);
 
     g_object_class_install_properties (object_class, N_PROPS, properties);
 

@@ -236,19 +236,38 @@ static void render_frame (KeyframeCanvas *self)
 
     {
         int width, height;
-        g_object_get (priv->composition, "width", &width, "height", &height, NULL);
+        float cur_time;
 
-        keyframe_renderer_begin_frame (renderer,
-                                   width * priv->resolution_factor,
-                                   height * priv->resolution_factor);
+        g_object_get (priv->composition,
+                      "width", &width,
+                      "height", &height,
+                      "current-time", &cur_time,
+                      NULL);
 
-        GSList *layers = keyframe_composition_get_layers (priv->composition);
-        for (GSList *l = layers; l != NULL; l = l->next)
+        keyframe_renderer_begin_frame (renderer, cur_time,
+                                       width * priv->resolution_factor,
+                                       height * priv->resolution_factor);
+
+        GList *layers = keyframe_composition_get_layers (priv->composition);
+        for (GList *l = layers; l != NULL; l = l->next)
         {
             KeyframeLayer *layer = l->data;
             g_assert (KEYFRAME_IS_LAYER (layer));
 
-            keyframe_layer_fill_command_buffer (layer, renderer);
+            gboolean visible;
+            float start_time, end_time;
+            g_object_get (layer,
+                          "visible", &visible,
+                          "start-time", &start_time,
+                          "end-time", &end_time,
+                          NULL);
+
+            if (visible &&
+                cur_time >= start_time &&
+                cur_time <= end_time)
+            {
+                keyframe_layer_fill_command_buffer (layer, renderer);
+            }
         }
 
         priv->surface = keyframe_renderer_end_frame (renderer);
@@ -287,6 +306,80 @@ keyframe_canvas_constructed (GObject *obj)
 }
 
 static void
+increment_time (KeyframeCanvas *self,
+                const char     *action_name,
+                GVariant       *param)
+
+{
+    KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (self);
+    float cur_time;
+    g_object_get (priv->composition, "current-time", &cur_time, NULL);
+    g_print ("Incrementing Time %f\n", cur_time++);
+    g_object_set (priv->composition, "current-time", cur_time, NULL);
+    render_frame (self);
+}
+
+static void
+decrement_time (KeyframeCanvas *self,
+                const char     *action_name,
+                GVariant       *param)
+{
+    KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (self);
+    float cur_time;
+    g_object_get (priv->composition, "current-time", &cur_time, NULL);
+    g_print ("Decrementing Time %f\n", cur_time--);
+    g_object_set (priv->composition, "current-time", cur_time, NULL);
+    render_frame (self);
+}
+
+static gboolean
+play_animation (KeyframeCanvas *self,
+                GdkFrameClock  *frame_clock,
+                gpointer        user_data)
+{
+    static gint64 last_frame_time = -1;
+
+    gint64 cur_frame_time = gdk_frame_clock_get_frame_time (frame_clock);
+    gint64 delta = last_frame_time == -1
+        ? 0
+        : cur_frame_time - last_frame_time;
+
+    KeyframeCanvasPrivate *priv = keyframe_canvas_get_instance_private (self);
+
+    float cur_time;
+    g_object_get (priv->composition, "current-time", &cur_time, NULL);
+    cur_time += ((float)delta/1000.0f);
+    g_object_set (priv->composition, "current-time", cur_time, NULL);
+    last_frame_time = cur_frame_time;
+
+    // g_print ("Frame! %f\n", priv->timestamp);
+
+    if (cur_time >= 1000.0f)
+    {
+        g_object_set (priv->composition, "current-time", 0.0f, NULL);
+        last_frame_time = -1;
+
+        render_frame (self);
+        gtk_widget_queue_draw (GTK_WIDGET (self));
+
+        return G_SOURCE_REMOVE;
+    }
+
+    render_frame (self);
+    gtk_widget_queue_draw (GTK_WIDGET (self));
+
+    return G_SOURCE_CONTINUE;
+}
+
+static void
+play (KeyframeCanvas *self,
+      const char     *action_name,
+      GVariant       *param)
+{
+    gtk_widget_add_tick_callback (self, play_animation, NULL, NULL);
+}
+
+static void
 keyframe_canvas_class_init (KeyframeCanvasClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
@@ -299,6 +392,14 @@ keyframe_canvas_class_init (KeyframeCanvasClass *klass)
     GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
 
     widget_class->snapshot = keyframe_canvas_snapshot;
+
+    gtk_widget_class_install_action (widget_class, "canvas.increment_time", NULL, increment_time);
+    gtk_widget_class_install_action (widget_class, "canvas.decrement_time", NULL, decrement_time);
+    gtk_widget_class_install_action (widget_class, "canvas.play", NULL, play);
+
+    gtk_widget_class_add_binding_action (widget_class, GDK_KEY_Right, GDK_CONTROL_MASK, "canvas.increment_time", NULL);
+    gtk_widget_class_add_binding_action (widget_class, GDK_KEY_Left, GDK_CONTROL_MASK, "canvas.decrement_time", NULL);
+    gtk_widget_class_add_binding_action (widget_class, GDK_KEY_space, GDK_CONTROL_MASK, "canvas.play", NULL);
 
     properties [PROP_COMPOSITION] =
         g_param_spec_object ("composition", "Composition", "Composition",
@@ -321,6 +422,9 @@ keyframe_canvas_init (KeyframeCanvas *self)
     gtk_event_controller_set_propagation_phase (GTK_EVENT_CONTROLLER (priv->zoom_gesture),
                                                 GTK_PHASE_BUBBLE);
     gtk_widget_add_controller (GTK_WIDGET (self), GTK_EVENT_CONTROLLER (priv->zoom_gesture));
+
+    gtk_widget_set_focusable (GTK_WIDGET (self), TRUE);
+    gtk_widget_set_focus_on_click (GTK_WIDGET (self), TRUE);
 
     // Set Canvas Properties
     // TODO: Only apply resolution factor to bitmap layers? (e.g. exclude text)

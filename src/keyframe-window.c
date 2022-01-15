@@ -19,7 +19,7 @@
 #include "keyframe-config.h"
 #include "keyframe-window.h"
 #include "keyframe-canvas.h"
-#include "keyframe-timeline.h"
+#include "timeline/keyframe-timeline.h"
 #include "keyframe-layer-list.h"
 #include "keyframe-composition-manager.h"
 #include "model/keyframe-layers.h"
@@ -158,7 +158,7 @@ create_frame_cb (PanelGrid     *grid,
     adw_status_page_set_child (status, GTK_WIDGET (shortcuts));
     panel_frame_set_placeholder (frame, GTK_WIDGET (status));
 
-    header = PANEL_FRAME_HEADER (panel_frame_header_bar_new ());
+    header = PANEL_FRAME_HEADER (panel_frame_tab_bar_new ());
 
     panel_frame_set_header (frame, header);
     panel_frame_header_pack_start (header,
@@ -274,8 +274,8 @@ keyframe_window_init (KeyframeWindow *self)
     gtk_widget_init_template (GTK_WIDGET (self));
 
     // Use Dark Mode (later make this configurable)
-    GtkSettings *settings = gtk_widget_get_settings (GTK_WIDGET (self));
-    g_object_set (settings, "gtk-application-prefer-dark-theme", 1, NULL);
+    AdwStyleManager *style_manager = adw_style_manager_get_default ();
+    adw_style_manager_set_color_scheme (style_manager, ADW_COLOR_SCHEME_FORCE_DARK);
 
     self->manager = keyframe_composition_manager_new ();
     g_object_set (self->timeline, "manager", self->manager, NULL);

@@ -1,8 +1,9 @@
 #pragma once
 
 #include <glib-2.0/glib-object.h>
+#include <gio/gio.h>
 
-#include "keyframe-layer.h"
+#include "keyframe-layers.h"
 
 G_BEGIN_DECLS
 
@@ -32,7 +33,7 @@ keyframe_composition_delete_layer (KeyframeComposition *self,
 void
 keyframe_composition_invalidate (KeyframeComposition *self);
 
-GSList *
+GList *
 keyframe_composition_get_layers (KeyframeComposition *self);
 
 G_END_DECLS

@@ -2,7 +2,9 @@
 <gresources>
   <gresource prefix="/com/mattjakeman/Keyframe">
     <file>keyframe-window.ui</file>
-    <file>gtk/help-overlay.ui</file>
+    <file>control-point-dialog.ui</file>
+    <file>help-overlay.ui</file>
+    <file>style.css</file>
     <file preprocess="xml-stripblanks">icons/cameras-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/camera-web-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/list-symbolic.svg</file>
@@ -10,5 +12,7 @@
     <file preprocess="xml-stripblanks">icons/document-new-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/user-trash-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/edit-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/function-linear-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/logo.svg</file>
   </gresource>
 </gresources>

@@ -1,8 +1,10 @@
 #include "keyframe-layer-geometry.h"
 
+#include "keyframe-value-float.h"
+
 typedef struct
 {
-    float width, height;
+    KeyframeValueFloat *width, *height;
 } KeyframeLayerGeometryPrivate;
 
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (KeyframeLayerGeometry, keyframe_layer_geometry, KEYFRAME_TYPE_LAYER)
@@ -28,8 +30,8 @@ keyframe_layer_geometry_new (const char *name, float width, float height)
 {
     return g_object_new (KEYFRAME_TYPE_LAYER_GEOMETRY,
                          "name", name,
-                         "width", width,
-                         "height", height,
+                         "width", keyframe_value_float_new (width),
+                         "height", keyframe_value_float_new (height),
                          NULL);
 }
 
@@ -54,10 +56,10 @@ keyframe_layer_geometry_get_property (GObject    *object,
     switch (prop_id)
     {
     case PROP_WIDTH:
-        g_value_set_float (value, priv->width);
+        g_value_set_boxed (value, priv->width);
         break;
     case PROP_HEIGHT:
-        g_value_set_float (value, priv->height);
+        g_value_set_boxed (value, priv->height);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -76,10 +78,15 @@ keyframe_layer_geometry_set_property (GObject      *object,
     switch (prop_id)
     {
     case PROP_WIDTH:
-        priv->width = g_value_get_float (value);
+        if (priv->width)
+            g_boxed_free (KEYFRAME_TYPE_VALUE_FLOAT, priv->width);
+        priv->width = g_value_get_boxed (value);
+        keyframe_value_float_set_dynamic_test_data (priv->width);
         break;
     case PROP_HEIGHT:
-        priv->height = g_value_get_float (value);
+        if (priv->height)
+            g_boxed_free (KEYFRAME_TYPE_VALUE_FLOAT, priv->height);
+        priv->height = g_value_get_boxed (value);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -90,16 +97,25 @@ static void
 keyframe_layer_geometry_fill_command_buffer (KeyframeLayer *self, KeyframeRenderer *renderer)
 {
     cairo_t *cr = keyframe_renderer_get_cairo (renderer);
+    float timestamp = keyframe_renderer_get_timestamp (renderer);
 
     cairo_save (cr);
 
-    float x, y, width, height;
+    KeyframeValueFloat *width_keyframes, *height_keyframes;
+    float x, y;
     g_object_get (self,
                   "x", &x,
                   "y", &y,
-                  "width", &width,
-                  "height", &height,
+                  "width", &width_keyframes,
+                  "height", &height_keyframes,
                   NULL);
+
+    float width = keyframe_value_float_get (width_keyframes, timestamp);
+    float height = keyframe_value_float_get (height_keyframes, timestamp);
+
+    g_boxed_free (KEYFRAME_TYPE_VALUE_FLOAT, width_keyframes);
+    g_boxed_free (KEYFRAME_TYPE_VALUE_FLOAT, height_keyframes);
+
     cairo_translate (cr, x, y);
 
     cairo_set_source_rgb (cr, 1, 1, 1);
@@ -130,7 +146,7 @@ keyframe_layer_geometry_class_init (KeyframeLayerGeometryClass *klass)
     layer_class->fill_command_buffer = keyframe_layer_geometry_fill_command_buffer;
     layer_class->type = keyframe_layer_geometry_type;
 
-    properties [PROP_WIDTH] =
+    /*properties [PROP_WIDTH] =
         g_param_spec_float ("width",
                             "Width",
                             "Width of the layer in pixels.",
@@ -142,6 +158,20 @@ keyframe_layer_geometry_class_init (KeyframeLayerGeometryClass *klass)
                             "Height",
                             "Height of the layer in pixels.",
                             0, G_MAXFLOAT, 0.0f,
+                            G_PARAM_READWRITE);*/
+
+    properties [PROP_WIDTH] =
+        g_param_spec_boxed ("width",
+                            "Width",
+                            "Width of the layer in pixels.",
+                            KEYFRAME_TYPE_VALUE_FLOAT,
+                            G_PARAM_READWRITE);
+
+    properties [PROP_HEIGHT] =
+        g_param_spec_boxed ("height",
+                            "Height",
+                            "Height of the layer in pixels.",
+                            KEYFRAME_TYPE_VALUE_FLOAT,
                             G_PARAM_READWRITE);
 
     g_object_class_install_properties (object_class, N_PROPS, properties);
@@ -150,4 +180,9 @@ keyframe_layer_geometry_class_init (KeyframeLayerGeometryClass *klass)
 static void
 keyframe_layer_geometry_init (KeyframeLayerGeometry *self)
 {
+    KeyframeLayerGeometryPrivate *priv = keyframe_layer_geometry_get_instance_private (self);
+
+    // Default Property Values
+    priv->width = keyframe_value_float_new (0.0f);
+    priv->height = keyframe_value_float_new (0.0f);
 }

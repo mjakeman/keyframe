@@ -1,0 +1,84 @@
+timeline {
+    background-color: #222;
+}
+
+timeline row {
+    background-color: transparent;
+    padding: 0;
+    margin: 0;
+}
+
+timeline row:selected channel {
+    background-color: #666;
+}
+
+/* TODO: respect light/dark theme */
+@define-color channel_color #444;
+
+timeline header label {
+    font-weight: bold;
+    color: alpha(white, 0.4);
+}
+
+timeline channel {
+    margin: 0;
+    margin-bottom: 2px;
+}
+
+timeline channel .infobox {
+    padding: 4px;
+}
+
+.channel-depth-0 {
+    background-color: @channel_color;
+}
+
+.channel-depth-1 {
+    background-color: shade(@channel_color, 0.7);
+}
+
+.channel-depth-2 {
+    background-color: shade(@channel_color, 0.4);
+}
+
+.channel-depth-3 {
+    background-color: shade(@channel_color, 0.1);
+}
+
+timeline track {
+    background-color: #111;
+    border-left: 2px solid #555;
+}
+
+clip {
+    border-radius: 4px;
+    background-image: linear-gradient(to bottom, @red_2, @red_4);
+    border: 1px solid @red_5;
+}
+
+clip:hover {
+    border: 1px solid alpha(white, 0.8);
+}
+
+row:selected clip {
+    border: 1px solid white;
+}
+
+/* Diamond */
+control-point {
+    margin: 6px;
+    background-image: linear-gradient(to bottom right, @yellow_2, @yellow_4);
+    border: 1px solid alpha(white, 0.7);
+    transform: rotate(45deg);
+}
+
+/* Circle */
+control-point.circle {
+    margin: 4px;
+    background-image: linear-gradient(to bottom, @blue_2, @blue_4);
+    border-radius: 999px;
+}
+
+control-point:hover {
+    border: 1px solid white;
+}

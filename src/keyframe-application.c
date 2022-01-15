@@ -18,7 +18,7 @@
 
 #include "keyframe-application.h"
 #include "keyframe-window.h"
-#include "keyframe-timeline.h"
+#include "timeline/keyframe-timeline.h"
 #include "keyframe-layer-list.h"
 #include "model/keyframe-layers.h"
 
@@ -63,6 +63,13 @@ keyframe_application_activate (GApplication *app)
     g_type_ensure (KEYFRAME_TYPE_LAYER);
     g_type_ensure (KEYFRAME_TYPE_LAYER_GEOMETRY);
     g_type_ensure (KEYFRAME_TYPE_LAYER_TEXT);
+
+    // Setup CSS Provider
+    GtkCssProvider *provider = gtk_css_provider_new ();
+    gtk_css_provider_load_from_resource (provider, "/com/mattjakeman/Keyframe/style.css");
+    gtk_style_context_add_provider_for_display (gdk_display_get_default (),
+                                                GTK_STYLE_PROVIDER (provider),
+                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
     // Activate
     GtkWindow *window;
@@ -122,6 +129,7 @@ keyframe_application_show_about (GSimpleAction *action,
                          "license-type", GTK_LICENSE_GPL_3_0,
                          "website", "https://github.com/mjakeman/keyframe",
                          "comments", "A motion graphics editor for GNOME.",
+                         "logo-icon-name", "logo",
                          NULL);
 }
 

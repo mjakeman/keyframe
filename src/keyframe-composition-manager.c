@@ -85,9 +85,9 @@ keyframe_composition_manager_new_composition (KeyframeCompositionManager *self)
 
     // Default Project Properties (get from gsettings?)
     char *title = g_strdup_printf ("Composition %u", ++count);
-    KeyframeComposition *composition = keyframe_composition_new (title, 1920, 1080, 30);
+    KeyframeComposition *composition = keyframe_composition_new (title, 800, 600, 30);
 
-    KeyframeLayer *layer_geom = keyframe_layer_geometry_new ("Backdrop", 1920, 1080 * 0.25);
+    KeyframeLayer *layer_geom = keyframe_layer_geometry_new ("Backdrop", 800, 600 * 0.25);
     keyframe_composition_push_layer (composition, layer_geom);
 
     // Doesn't really do anything, but it looks cool
