@@ -1,8 +1,0 @@
-[Desktop Entry]
-Name=keyframe
-Exec=keyframe
-Icon=com.mattjakeman.Keyframe
-Terminal=false
-Type=Application
-Categories=GTK;
-StartupNotify=true
